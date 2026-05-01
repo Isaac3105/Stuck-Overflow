@@ -333,11 +333,6 @@ class _CurrentTripBody extends ConsumerWidget {
       },
     );
   }
-
-  void _scrollToCaptures(BuildContext context) {
-    // Keeping it simple: the captures section is already on this page.
-    // If you want true scroll-to-anchor, we can convert to ScrollController + GlobalKey.
-  }
 }
 
 class _HeaderCard extends ConsumerWidget {
