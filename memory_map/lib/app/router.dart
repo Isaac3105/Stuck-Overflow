@@ -7,8 +7,8 @@ import '../features/trips/presentation/plan/create_trip_page.dart';
 import '../features/trips/presentation/plan/plan_page.dart';
 import '../features/trips/presentation/plan/trip_planner_page.dart';
 import '../features/trips/presentation/timeline/timeline_page.dart';
-import '../my_trips_page.dart';
-import '../trip_result_page.dart';
+import '../features/trips/presentation/archive/my_trips_page.dart';
+import '../features/trips/presentation/archive/trip_result_page.dart';
 
 final appRouter = GoRouter(
   initialLocation: '/home',
@@ -56,9 +56,9 @@ final appRouter = GoRouter(
           routes: [
             GoRoute(
               path: '/archive',
-              builder: (context, state) => const Scaffold(
-                appBar: null,
-                body: MyTrips(),
+              builder: (context, state) => Scaffold(
+                appBar: AppBar(title: const Text('Minhas viagens')),
+                body: const MyTrips(),
               ),
               routes: [
                 GoRoute(

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import 'features/trips/presentation/archive/trip_archive_page.dart';
+import 'trip_archive_page.dart';
 
 /// Página detalhada da viagem (arquivo).
 ///
@@ -15,3 +15,4 @@ class TripResultPage extends StatelessWidget {
     return TripArchivePage(tripId: tripId);
   }
 }
+

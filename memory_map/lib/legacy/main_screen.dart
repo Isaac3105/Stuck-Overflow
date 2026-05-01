@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
-import 'current_trip_page.dart';
-import 'my_trips_page.dart';
 
+import 'current_trip_page.dart';
+import '../features/trips/presentation/archive/my_trips_page.dart';
+
+/// Legacy prototype screen (not used by current app router).
 class MainScreen extends StatefulWidget {
   const MainScreen({super.key});
 
@@ -12,8 +14,9 @@ class MainScreen extends StatefulWidget {
 class _MainScreenState extends State<MainScreen> {
   int _currentIndex = 0;
 
-  // We use a Navigator for the MyTrips tab to allow pushing details while keeping the BottomNavBar
-  final GlobalKey<NavigatorState> _myTripsNavigatorKey = GlobalKey<NavigatorState>();
+  // Nested navigator to keep BottomNavBar
+  final GlobalKey<NavigatorState> _myTripsNavigatorKey =
+      GlobalKey<NavigatorState>();
 
   @override
   Widget build(BuildContext context) {
@@ -21,16 +24,15 @@ class _MainScreenState extends State<MainScreen> {
       body: IndexedStack(
         index: _currentIndex,
         children: [
-          const PlanPage(),
+          const _LegacyPlanPage(),
           const CurrentTrip(),
-          // Nested Navigator for My Trips tab
           Navigator(
             key: _myTripsNavigatorKey,
             onGenerateRoute: (settings) => MaterialPageRoute(
               builder: (context) => const MyTrips(),
             ),
           ),
-          const PlanPage(),
+          const _LegacyPlanPage(),
         ],
       ),
       bottomNavigationBar: BottomNavigationBar(
@@ -39,18 +41,17 @@ class _MainScreenState extends State<MainScreen> {
         selectedItemColor: Theme.of(context).colorScheme.primary,
         unselectedItemColor: Colors.grey,
         onTap: (index) {
-          // If tapping the same tab that has the nested navigator, pop to root
           if (index == 1 && _currentIndex == 1) {
-            _myTripsNavigatorKey.currentState?.popUntil((route) => route.isFirst);
+            _myTripsNavigatorKey.currentState
+                ?.popUntil((route) => route.isFirst);
           }
-          setState(() {
-            _currentIndex = index;
-          });
+          setState(() => _currentIndex = index);
         },
         items: const [
           BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
           BottomNavigationBarItem(icon: Icon(Icons.explore), label: 'Current'),
-          BottomNavigationBarItem(icon: Icon(Icons.airplanemode_active), label: 'Travels'),
+          BottomNavigationBarItem(
+              icon: Icon(Icons.airplanemode_active), label: 'Travels'),
           BottomNavigationBarItem(icon: Icon(Icons.map), label: 'Plan'),
         ],
       ),
@@ -58,8 +59,8 @@ class _MainScreenState extends State<MainScreen> {
   }
 }
 
-class PlanPage extends StatelessWidget {
-  const PlanPage({super.key});
+class _LegacyPlanPage extends StatelessWidget {
+  const _LegacyPlanPage();
 
   @override
   Widget build(BuildContext context) {
@@ -73,3 +74,4 @@ class PlanPage extends StatelessWidget {
     );
   }
 }
+

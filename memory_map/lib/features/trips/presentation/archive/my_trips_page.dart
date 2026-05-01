@@ -6,9 +6,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
-import 'features/trips/data/trip_providers.dart';
-import 'features/trips/domain/media.dart';
-import 'features/trips/domain/trip.dart';
+import '../../data/trip_providers.dart';
+import '../../domain/media.dart';
+import '../../domain/trip.dart';
 
 class MyTrips extends ConsumerWidget {
   const MyTrips({super.key});
@@ -84,7 +84,11 @@ class MyTrips extends ConsumerWidget {
     );
   }
 
-  Widget _buildActionButton(BuildContext context, {required IconData icon, required VoidCallback onPressed}) {
+  Widget _buildActionButton(
+    BuildContext context, {
+    required IconData icon,
+    required VoidCallback onPressed,
+  }) {
     return Container(
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.primaryContainer,
@@ -166,7 +170,10 @@ class MyTrips extends ConsumerWidget {
                     children: [
                       const Text(
                         'Filter Configuration',
-                        style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                       IconButton(
                         onPressed: () => Navigator.pop(context),
@@ -176,7 +183,10 @@ class MyTrips extends ConsumerWidget {
                   ),
                   const Divider(),
                   const SizedBox(height: 16),
-                  const Text('Destination', style: TextStyle(fontWeight: FontWeight.bold)),
+                  const Text(
+                    'Destination',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
                   const SizedBox(height: 8),
                   const TextField(
                     decoration: InputDecoration(
@@ -186,12 +196,20 @@ class MyTrips extends ConsumerWidget {
                     ),
                   ),
                   const SizedBox(height: 20),
-                   Row(
+                  Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text('Rating Range', style: TextStyle(fontWeight: FontWeight.bold)),
-                      Text('${ratingRange.start.toStringAsFixed(1)} ★ - ${ratingRange.end.toStringAsFixed(1)} ★', 
-                        style: TextStyle(color: Theme.of(context).colorScheme.primary, fontWeight: FontWeight.bold)),
+                      const Text(
+                        'Rating Range',
+                        style: TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                      Text(
+                        '${ratingRange.start.toStringAsFixed(1)} ★ - ${ratingRange.end.toStringAsFixed(1)} ★',
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.primary,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                     ],
                   ),
                   RangeSlider(
@@ -210,7 +228,10 @@ class MyTrips extends ConsumerWidget {
                     },
                   ),
                   const SizedBox(height: 20),
-                  const Text('Date Range', style: TextStyle(fontWeight: FontWeight.bold)),
+                  const Text(
+                    'Date Range',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
                   const SizedBox(height: 8),
                   OutlinedButton.icon(
                     onPressed: () {},
@@ -218,7 +239,10 @@ class MyTrips extends ConsumerWidget {
                     label: const Text('Select Dates'),
                     style: OutlinedButton.styleFrom(
                       alignment: Alignment.centerLeft,
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 12,
+                      ),
                     ),
                   ),
                   const SizedBox(height: 32),
@@ -227,11 +251,12 @@ class MyTrips extends ConsumerWidget {
                       Expanded(
                         child: TextButton(
                           onPressed: () => Navigator.pop(context),
-                          child: const Text('Reset All'),
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: Theme.of(context).colorScheme.primary,
+                            backgroundColor:
+                                Theme.of(context).colorScheme.primary,
                             foregroundColor: Colors.white,
                           ),
+                          child: const Text('Reset All'),
                         ),
                       ),
                       const SizedBox(width: 16),
@@ -239,7 +264,8 @@ class MyTrips extends ConsumerWidget {
                         child: ElevatedButton(
                           onPressed: () => Navigator.pop(context),
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: Theme.of(context).colorScheme.primary,
+                            backgroundColor:
+                                Theme.of(context).colorScheme.primary,
                             foregroundColor: Colors.white,
                           ),
                           child: const Text('Apply Filters'),
@@ -256,7 +282,6 @@ class MyTrips extends ConsumerWidget {
       },
     );
   }
-
 }
 
 class _TripCard extends ConsumerWidget {
@@ -544,3 +569,4 @@ final _coverImagePathProvider =
     orElse: () => null,
   );
 });
+
