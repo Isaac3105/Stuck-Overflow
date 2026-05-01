@@ -4,13 +4,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../../../core/services/media_capture_service.dart';
 import '../../../media/audio_player_tile.dart';
 import '../../../media/audio_recorder_button.dart';
 import '../../../media/photo_thumbnail.dart';
 import '../../../music/data/spotify_repository.dart';
-import '../../../music/presentation/trip_playlist_card.dart';
 import '../../data/trip_providers.dart';
 import '../../domain/media.dart';
 import '../../domain/trip.dart';
@@ -221,37 +221,109 @@ class _CurrentTripBody extends ConsumerWidget {
                 ),
                 const SizedBox(width: 10),
                 Expanded(
-                  child: Card(
-                    child: InkWell(
-                      borderRadius: BorderRadius.circular(12),
-                      onTap: () => context.go('/plan/${trip.id}'),
+                  child: playlistAsync.when(
+                    loading: () => Card(
                       child: Padding(
                         padding: const EdgeInsets.all(12),
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            const Icon(Icons.music_note_outlined),
-                            const SizedBox(height: 6),
-                            Text(
-                              'Playlist',
-                              style: Theme.of(context).textTheme.bodySmall,
-                              textAlign: TextAlign.center,
+                        child: Center(
+                          child: SizedBox(
+                            width: 22,
+                            height: 22,
+                            child: CircularProgressIndicator.adaptive(
+                              strokeWidth: 2,
                             ),
-                          ],
+                          ),
                         ),
                       ),
                     ),
+                    error: (e, st) => Card(
+                      child: InkWell(
+                        borderRadius: BorderRadius.circular(12),
+                        onTap: () => context.go('/plan/${trip.id}'),
+                        child: Padding(
+                          padding: const EdgeInsets.all(12),
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                Icons.music_note_outlined,
+                                color: Theme.of(context).colorScheme.primary,
+                              ),
+                              const SizedBox(height: 6),
+                              Text(
+                                'Playlist',
+                                style: Theme.of(context).textTheme.bodySmall,
+                                textAlign: TextAlign.center,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                    data: (p) => p == null
+                        ? Card(
+                            child: InkWell(
+                              borderRadius: BorderRadius.circular(12),
+                              onTap: () => context.go('/plan/${trip.id}'),
+                              child: Padding(
+                                padding: const EdgeInsets.all(12),
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(
+                                      Icons.music_note_outlined,
+                                      color: Theme.of(context).colorScheme.primary,
+                                    ),
+                                    const SizedBox(height: 6),
+                                    Text(
+                                      'Playlist',
+                                      style:
+                                          Theme.of(context).textTheme.bodySmall,
+                                      textAlign: TextAlign.center,
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          )
+                        : Card(
+                            child: InkWell(
+                              borderRadius: BorderRadius.circular(12),
+                              onTap: p.deepLink == null
+                                  ? null
+                                  : () => launchUrl(
+                                        Uri.parse(p.deepLink!),
+                                        mode: LaunchMode.externalApplication,
+                                      ),
+                              child: Padding(
+                                padding: const EdgeInsets.all(12),
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(
+                                      Icons.music_note_outlined,
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .primary,
+                                    ),
+                                    const SizedBox(height: 6),
+                                    Text(
+                                      'Playlist',
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .bodySmall,
+                                      textAlign: TextAlign.center,
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
                   ),
                 ),
               ],
-            ),
-            const SizedBox(height: 10),
-            playlistAsync.when(
-              loading: () => const SizedBox.shrink(),
-              error: (e, st) => const SizedBox.shrink(),
-              data: (p) => p == null
-                  ? const SizedBox.shrink()
-                  : TripPlaylistCard(playlist: p),
             ),
             const SizedBox(height: 16),
             _CapturesSection(dayId: day.id, mediaAsync: mediaAsync),
