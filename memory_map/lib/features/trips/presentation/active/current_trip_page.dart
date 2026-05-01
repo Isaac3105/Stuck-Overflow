@@ -169,14 +169,23 @@ class _CurrentTripBodyState extends ConsumerState<_CurrentTripBody> {
                                   overflow: TextOverflow.ellipsis,
                                 ),
                                 subtitle: Text('${b.startLabel} – ${b.endLabel}'),
-                                onTap: () => context.go('/plan/${widget.trip.id}'),
+                                onTap: () => context.go(
+                                  Uri(
+                                    path: '/plan/${widget.trip.id}',
+                                    queryParameters: {'day': day.id},
+                                  ).toString(),
+                                ),
                               ),
                             if (blocks.length > shown.length)
                               Align(
                                 alignment: Alignment.centerLeft,
                                 child: TextButton(
-                                  onPressed: () =>
-                                      context.go('/plan/${widget.trip.id}'),
+                                  onPressed: () => context.go(
+                                    Uri(
+                                      path: '/plan/${widget.trip.id}',
+                                      queryParameters: {'day': day.id},
+                                    ).toString(),
+                                  ),
                                   child: const Text('Ver tudo no planeador'),
                                 ),
                               ),

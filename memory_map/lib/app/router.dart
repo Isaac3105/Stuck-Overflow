@@ -37,8 +37,10 @@ final appRouter = GoRouter(
                 ),
                 GoRoute(
                   path: ':tripId',
-                  builder: (context, state) =>
-                      TripPlannerPage(tripId: state.pathParameters['tripId']!),
+                  builder: (context, state) => TripPlannerPage(
+                    tripId: state.pathParameters['tripId']!,
+                    initialDayId: state.uri.queryParameters['day'],
+                  ),
                 ),
               ],
             ),
