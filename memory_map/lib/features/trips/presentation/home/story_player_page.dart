@@ -34,20 +34,12 @@ class _StoryPlayerPageState extends State<StoryPlayerPage> {
 
   void _startTimer() {
     _timer?.cancel();
-    _timer = Timer.periodic(const Duration(seconds: 4), (_) {
-      if (_paused) return;
-      if (!mounted) return;
-      final next = _index + 1;
-      if (next >= _photos.length) {
-        Navigator.of(context).pop();
+    _timer = Timer(const Duration(seconds: 4), () {
+      if (_paused) {
+        _startTimer(); // Check again later
         return;
       }
-      _page.animateToPage(
-        next,
-        duration: const Duration(milliseconds: 250),
-        curve: Curves.easeOut,
-      );
-      setState(() => _index = next);
+      _nextPage();
     });
   }
 
@@ -74,12 +66,38 @@ class _StoryPlayerPageState extends State<StoryPlayerPage> {
     super.dispose();
   }
 
-  void _togglePause() {
-    setState(() => _paused = !_paused);
-    if (_paused) {
-      _player.pause();
-    } else {
-      _player.play();
+  void _nextPage() {
+    if (!mounted) return;
+    final next = _index + 1;
+    if (next >= _photos.length) {
+      Navigator.of(context).pop();
+      return;
+    }
+    _page.animateToPage(
+      next,
+      duration: const Duration(milliseconds: 200),
+      curve: Curves.easeInOut,
+    );
+    setState(() => _index = next);
+    _startTimer(); // Restart timer
+    if (_player.hasNext) {
+      _player.seekToNext();
+    }
+  }
+
+  void _previousPage() {
+    if (!mounted) return;
+    if (_index <= 0) return;
+    final prev = _index - 1;
+    _page.animateToPage(
+      prev,
+      duration: const Duration(milliseconds: 200),
+      curve: Curves.easeInOut,
+    );
+    setState(() => _index = prev);
+    _startTimer(); // Restart timer
+    if (_player.hasPrevious) {
+      _player.seekToPrevious();
     }
   }
 
@@ -106,6 +124,28 @@ class _StoryPlayerPageState extends State<StoryPlayerPage> {
                 );
               },
             ),
+            Positioned.fill(
+              child: GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTapUp: (details) {
+                  final width = MediaQuery.of(context).size.width;
+                  final dx = details.localPosition.dx;
+                  if (dx < width / 3) {
+                    _previousPage();
+                  } else {
+                    _nextPage();
+                  }
+                },
+                onLongPress: () {
+                  setState(() => _paused = true);
+                  _player.pause();
+                },
+                onLongPressUp: () {
+                  setState(() => _paused = false);
+                  _player.play();
+                },
+              ),
+            ),
             Positioned(
               left: 16,
               right: 16,
@@ -118,20 +158,6 @@ class _StoryPlayerPageState extends State<StoryPlayerPage> {
               child: IconButton(
                 onPressed: () => Navigator.of(context).pop(),
                 icon: const Icon(Icons.close, color: Colors.white),
-              ),
-            ),
-            Positioned.fill(
-              child: GestureDetector(
-                behavior: HitTestBehavior.opaque,
-                onTap: _togglePause,
-                onLongPress: () {
-                  setState(() => _paused = true);
-                  _player.pause();
-                },
-                onLongPressUp: () {
-                  setState(() => _paused = false);
-                  _player.play();
-                },
               ),
             ),
           ],
