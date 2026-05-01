@@ -13,7 +13,13 @@ import '../../domain/trip.dart';
 import '../home/home_providers.dart';
 import '../home/story_player_page.dart';
 
+enum TripSortOption { date, country, name }
+
 final _tripSearchProvider = StateProvider.autoDispose<String>((ref) => '');
+final _tripSortProvider =
+    StateProvider.autoDispose<TripSortOption>((ref) => TripSortOption.date);
+final _tripSortAscendingProvider =
+    StateProvider.autoDispose<bool>((ref) => false);
 
 class MyTrips extends ConsumerWidget {
   const MyTrips({super.key});
@@ -22,18 +28,39 @@ class MyTrips extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final tripsAsync = ref.watch(allTripsProvider);
     final search = ref.watch(_tripSearchProvider);
+    final sort = ref.watch(_tripSortProvider);
+    final ascending = ref.watch(_tripSortAscendingProvider);
 
     return tripsAsync.when(
       loading: () => const Center(child: CircularProgressIndicator()),
       error: (e, _) => Center(child: Text('Erro: $e')),
       data: (trips) {
         final now = DateTime.now();
-        final completed = trips
+        var completedList = trips
             .where((t) => t.resolvedStatus(now) == TripStatus.completed)
             .where((t) =>
                 search.isEmpty ||
                 t.name.toLowerCase().contains(search.toLowerCase()))
-            .toList(growable: false);
+            .toList();
+
+        // Apply Sorting
+        int multiplier = ascending ? 1 : -1;
+        switch (sort) {
+          case TripSortOption.date:
+            completedList
+                .sort((a, b) => multiplier * a.startDate.compareTo(b.startDate));
+          case TripSortOption.country:
+            completedList.sort((a, b) {
+              final ca = a.countries.isNotEmpty ? a.countries.first : '';
+              final cb = b.countries.isNotEmpty ? b.countries.first : '';
+              return multiplier * ca.compareTo(cb);
+            });
+          case TripSortOption.name:
+            completedList
+                .sort((a, b) => multiplier * a.name.compareTo(b.name));
+        }
+
+        final completed = List<Trip>.unmodifiable(completedList);
 
         return SafeArea(
           child: Column(
@@ -59,7 +86,7 @@ class MyTrips extends ConsumerWidget {
                     _buildActionButton(
                       context,
                       icon: Icons.sort,
-                      onPressed: () => _showSortSheet(context),
+                      onPressed: () => _showSortSheet(context, ref),
                     ),
                     const SizedBox(width: 8),
                     _buildActionButton(
@@ -116,7 +143,10 @@ class MyTrips extends ConsumerWidget {
     );
   }
 
-  void _showSortSheet(BuildContext context) {
+  void _showSortSheet(BuildContext context, WidgetRef ref) {
+    final activeSort = ref.read(_tripSortProvider);
+    final ascending = ref.read(_tripSortAscendingProvider);
+
     showModalBottomSheet(
       context: context,
       shape: const RoundedRectangleBorder(
@@ -134,24 +164,70 @@ class MyTrips extends ConsumerWidget {
                 style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 16),
-              ListTile(
-                leading: const Icon(Icons.calendar_today),
-                title: const Text('Date'),
-                onTap: () => Navigator.pop(context),
+              _buildSortTile(
+                context,
+                ref,
+                option: TripSortOption.date,
+                label: 'Date',
+                icon: Icons.calendar_today,
+                activeSort: activeSort,
+                ascending: ascending,
               ),
-              ListTile(
-                leading: const Icon(Icons.language),
-                title: const Text('Country Name'),
-                onTap: () => Navigator.pop(context),
+              _buildSortTile(
+                context,
+                ref,
+                option: TripSortOption.country,
+                label: 'Country Name',
+                icon: Icons.language,
+                activeSort: activeSort,
+                ascending: ascending,
               ),
-              ListTile(
-                leading: const Icon(Icons.star_outline),
-                title: const Text('Rating'),
-                onTap: () => Navigator.pop(context),
+              _buildSortTile(
+                context,
+                ref,
+                option: TripSortOption.name,
+                label: 'Name',
+                icon: Icons.sort_by_alpha,
+                activeSort: activeSort,
+                ascending: ascending,
               ),
             ],
           ),
         );
+      },
+    );
+  }
+
+  Widget _buildSortTile(
+    BuildContext context,
+    WidgetRef ref, {
+    required TripSortOption option,
+    required String label,
+    required IconData icon,
+    required TripSortOption activeSort,
+    required bool ascending,
+  }) {
+    final isActive = activeSort == option;
+    return ListTile(
+      leading: Icon(icon),
+      title: Text(label),
+      trailing: isActive
+          ? Icon(
+              ascending ? Icons.arrow_upward : Icons.arrow_downward,
+              color: Theme.of(context).colorScheme.primary,
+              size: 18,
+            )
+          : null,
+      onTap: () {
+        if (isActive) {
+          ref.read(_tripSortAscendingProvider.notifier).state = !ascending;
+        } else {
+          ref.read(_tripSortProvider.notifier).state = option;
+          // Set sensible defaults for new sort options
+          ref.read(_tripSortAscendingProvider.notifier).state =
+              option != TripSortOption.date;
+        }
+        Navigator.pop(context);
       },
     );
   }
