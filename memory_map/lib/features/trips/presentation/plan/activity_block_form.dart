@@ -58,14 +58,21 @@ class _ActivityBlockFormState extends ConsumerState<ActivityBlockForm> {
   }
 
   Future<void> _pickStart() async {
-    final picked =
-        await showTimePicker(context: context, initialTime: _start);
+    final picked = await _showScrollTimePicker(initial: _start);
     if (picked != null) setState(() => _start = picked);
   }
 
   Future<void> _pickEnd() async {
-    final picked = await showTimePicker(context: context, initialTime: _end);
+    final picked = await _showScrollTimePicker(initial: _end);
     if (picked != null) setState(() => _end = picked);
+  }
+
+  Future<TimeOfDay?> _showScrollTimePicker({required TimeOfDay initial}) async {
+    return showModalBottomSheet<TimeOfDay>(
+      context: context,
+      isScrollControlled: true,
+      builder: (ctx) => _ScrollTimePickerSheet(initial: initial),
+    );
   }
 
   Future<void> _delete() async {
@@ -214,6 +221,117 @@ class _ActivityBlockFormState extends ConsumerState<ActivityBlockForm> {
               ],
             ),
             const SizedBox(height: 12),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ScrollTimePickerSheet extends StatefulWidget {
+  const _ScrollTimePickerSheet({required this.initial});
+  final TimeOfDay initial;
+
+  @override
+  State<_ScrollTimePickerSheet> createState() => _ScrollTimePickerSheetState();
+}
+
+class _ScrollTimePickerSheetState extends State<_ScrollTimePickerSheet> {
+  late int _hour = widget.initial.hour;
+  late int _minute = widget.initial.minute;
+
+  late final FixedExtentScrollController _hourCtrl =
+      FixedExtentScrollController(initialItem: _hour);
+  late final FixedExtentScrollController _minCtrl =
+      FixedExtentScrollController(initialItem: _minute);
+
+  @override
+  void dispose() {
+    _hourCtrl.dispose();
+    _minCtrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SafeArea(
+      top: false,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.outlineVariant,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(height: 14),
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    'Selecionar hora',
+                    style: Theme.of(context).textTheme.titleLarge,
+                  ),
+                ),
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: const Text('Cancelar'),
+                ),
+                FilledButton(
+                  onPressed: () => Navigator.of(context).pop(
+                    TimeOfDay(hour: _hour, minute: _minute),
+                  ),
+                  child: const Text('OK'),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            SizedBox(
+              height: 220,
+              child: Row(
+                children: [
+                  Expanded(
+                    child: ListWheelScrollView.useDelegate(
+                      controller: _hourCtrl,
+                      itemExtent: 40,
+                      physics: const FixedExtentScrollPhysics(),
+                      onSelectedItemChanged: (i) => setState(() => _hour = i),
+                      childDelegate: ListWheelChildBuilderDelegate(
+                        childCount: 24,
+                        builder: (ctx, i) => Center(
+                          child: Text(i.toString().padLeft(2, '0')),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Text(
+                    ':',
+                    style: Theme.of(context).textTheme.headlineMedium,
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: ListWheelScrollView.useDelegate(
+                      controller: _minCtrl,
+                      itemExtent: 40,
+                      physics: const FixedExtentScrollPhysics(),
+                      onSelectedItemChanged: (i) => setState(() => _minute = i),
+                      childDelegate: ListWheelChildBuilderDelegate(
+                        childCount: 60,
+                        builder: (ctx, i) => Center(
+                          child: Text(i.toString().padLeft(2, '0')),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ],
         ),
       ),

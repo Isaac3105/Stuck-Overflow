@@ -49,6 +49,12 @@ class _CreateTripPageState extends ConsumerState<CreateTripPage> {
       );
       return;
     }
+    if (_countries.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Seleciona pelo menos um país.')),
+      );
+      return;
+    }
     setState(() => _saving = true);
     try {
       final repo = ref.read(tripRepositoryProvider);
@@ -98,10 +104,16 @@ class _CreateTripPageState extends ConsumerState<CreateTripPage> {
           const SizedBox(height: 16),
           CountryPickerField(
             selected: _countries,
-            onChanged: (v) => setState(() => _countries = v),
+            onChanged: (v) => setState(() {
+              _countries = v;
+              // Keep only cities that still make sense; user can re-add later.
+              // We don't hard-block custom cities, but we clear to encourage correct filtering.
+              _cities = [];
+            }),
           ),
           const SizedBox(height: 16),
           CitiesField(
+            selectedCountries: _countries,
             cities: _cities,
             onChanged: (v) => setState(() => _cities = v),
           ),
