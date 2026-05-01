@@ -53,4 +53,5 @@ abstract class TripRepository {
   Future<MediaItem?> getMedia(String mediaId);
   Future<void> setTripCover(String tripId, String mediaId);
   Future<void> setDayAudio(String dayId, String mediaId);
+  Future<void> setTripPlaylist(String tripId, String? playlistId);
 }

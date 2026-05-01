@@ -5,6 +5,8 @@ import 'package:intl/intl.dart';
 
 import '../../../media/audio_player_tile.dart';
 import '../../../media/photo_thumbnail.dart';
+import '../../../music/data/spotify_repository.dart';
+import '../../../music/presentation/trip_playlist_card.dart';
 import '../../data/trip_providers.dart';
 import '../../domain/day.dart';
 import '../../domain/media.dart';
@@ -18,6 +20,7 @@ class TripArchivePage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final tripAsync = ref.watch(tripProvider(tripId));
     final daysAsync = ref.watch(tripDaysProvider(tripId));
+    final playlistAsync = ref.watch(_selectedPlaylistProviderForTrip(tripId));
 
     return Scaffold(
       body: tripAsync.when(
@@ -42,10 +45,23 @@ class TripArchivePage extends ConsumerWidget {
                   SliverToBoxAdapter(
                     child: Padding(
                       padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-                      child: Text(
-                        '${DateFormat('d MMM yyyy', 'pt_PT').format(trip.startDate)} → '
-                        '${DateFormat('d MMM yyyy', 'pt_PT').format(trip.endDate)}',
-                        style: Theme.of(context).textTheme.bodyMedium,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            '${DateFormat('d MMM yyyy', 'pt_PT').format(trip.startDate)} → '
+                            '${DateFormat('d MMM yyyy', 'pt_PT').format(trip.endDate)}',
+                            style: Theme.of(context).textTheme.bodyMedium,
+                          ),
+                          const SizedBox(height: 12),
+                          playlistAsync.when(
+                            loading: () => const SizedBox.shrink(),
+                            error: (e, _) => const SizedBox.shrink(),
+                            data: (p) => p == null
+                                ? const SizedBox.shrink()
+                                : TripPlaylistCard(playlist: p),
+                          ),
+                        ],
                       ),
                     ),
                   ),
@@ -209,3 +225,10 @@ class _DaySection extends ConsumerWidget {
     );
   }
 }
+
+final _selectedPlaylistProviderForTrip =
+    StreamProvider.autoDispose.family((ref, String tripId) {
+  return ref
+      .watch(spotifyRepositoryProvider)
+      .watchSelectedPlaylistForTrip(tripId);
+});

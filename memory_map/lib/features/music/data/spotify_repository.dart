@@ -1,4 +1,5 @@
 import 'package:drift/drift.dart';
+import 'package:rxdart/rxdart.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:uuid/uuid.dart';
 
@@ -11,6 +12,48 @@ class SpotifyRepository {
   final AppDatabase _db;
   final SpotifyService _service;
   static const _uuid = Uuid();
+
+  Future<List<SpotifyPlaylist>> suggestPlaylists({
+    required String countryCode,
+    int limit = 3,
+  }) async {
+    // Better query than just ISO code.
+    final q = '$countryCode local playlist';
+    return _service.searchPlaylists(query: q, limit: limit);
+  }
+
+  /// Stores the selected playlist and associates it with the trip.
+  Future<PlaylistRow> selectPlaylistForTrip({
+    required String tripId,
+    required String countryCode,
+    required SpotifyPlaylist playlist,
+  }) async {
+    return _db.transaction(() async {
+      final existing = await (_db.select(_db.playlists)
+            ..where((t) => t.externalId.equals(playlist.id)))
+          .getSingleOrNull();
+      final row = existing ??
+          await (() async {
+            final id = _uuid.v4();
+            await _db.into(_db.playlists).insert(PlaylistsCompanion.insert(
+                  id: id,
+                  tripId: Value(tripId),
+                  externalId: playlist.id,
+                  name: playlist.name,
+                  coverUrl: Value(playlist.imageUrl),
+                  country: countryCode,
+                  deepLink: Value(playlist.deepLink),
+                ));
+            return (_db.select(_db.playlists)..where((t) => t.id.equals(id)))
+                .getSingle();
+          })();
+
+      await (_db.update(_db.trips)..where((t) => t.id.equals(tripId))).write(
+        TripsCompanion(selectedPlaylistId: Value(row.id)),
+      );
+      return row;
+    });
+  }
 
   /// Searches playlists and persists results (dedup by externalId).
   Future<List<PlaylistRow>> searchAndStorePlaylists({
@@ -84,6 +127,16 @@ class SpotifyRepository {
           ..where((p) => p.tripId.equals(tripId))
           ..orderBy([(p) => OrderingTerm(expression: p.name)]))
         .watch();
+  }
+
+  Stream<PlaylistRow?> watchSelectedPlaylistForTrip(String tripId) {
+    final tripQ = _db.select(_db.trips)..where((t) => t.id.equals(tripId));
+    return tripQ.watchSingleOrNull().switchMap((trip) {
+      final pid = trip?.selectedPlaylistId;
+      if (pid == null) return Stream.value(null);
+      final q = _db.select(_db.playlists)..where((p) => p.id.equals(pid));
+      return q.watchSingleOrNull();
+    });
   }
 
   Stream<List<PlaylistTrackRow>> watchTracks(String playlistId) {

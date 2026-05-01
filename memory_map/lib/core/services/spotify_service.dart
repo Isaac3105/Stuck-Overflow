@@ -84,20 +84,32 @@ class SpotifyService {
       },
       options: Options(headers: {'Authorization': 'Bearer $token'}),
     );
-    final playlists = (r.data?['playlists'] as Map<String, dynamic>?)?['items']
-        as List<dynamic>? ?? const [];
-    return playlists.map((p) {
-      final m = p as Map<String, dynamic>;
-      final images = (m['images'] as List<dynamic>? ?? const []);
-      final imageUrl = images.isEmpty
-          ? null
-          : (images.first as Map<String, dynamic>)['url'] as String?;
-      return SpotifyPlaylist(
-        id: m['id'] as String,
-        name: m['name'] as String? ?? 'Playlist',
-        imageUrl: imageUrl,
-      );
-    }).toList();
+    final root = r.data ?? const <String, dynamic>{};
+    final playlistsNode = root['playlists'];
+    final items = playlistsNode is Map<String, dynamic>
+        ? (playlistsNode['items'] as List<dynamic>? ?? const [])
+        : const <dynamic>[];
+
+    // Spotify may return null items; be defensive.
+    return items
+        .whereType<Map<String, dynamic>>()
+        .map((m) {
+          final images = (m['images'] as List<dynamic>? ?? const []);
+          final imageUrl = images.isEmpty
+              ? null
+              : (images.first is Map<String, dynamic>)
+                  ? (images.first as Map<String, dynamic>)['url'] as String?
+                  : null;
+          final id = m['id'] as String?;
+          if (id == null) return null;
+          return SpotifyPlaylist(
+            id: id,
+            name: m['name'] as String? ?? 'Playlist',
+            imageUrl: imageUrl,
+          );
+        })
+        .whereType<SpotifyPlaylist>()
+        .toList();
   }
 
   Future<List<SpotifyTrackPreview>> getPlaylistTrackPreviews({

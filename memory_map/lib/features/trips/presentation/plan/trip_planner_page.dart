@@ -9,7 +9,6 @@ import '../../../../core/services/gemini_service.dart';
 import '../../data/trip_providers.dart';
 import '../../domain/day.dart';
 import '../../../music/data/spotify_repository.dart';
-import '../../../music/presentation/preview_player.dart';
 import '../widgets/activity_block_tile.dart';
 import '../widgets/empty_state.dart';
 import 'activity_block_form.dart';
@@ -186,7 +185,9 @@ class _SpotifySuggestions extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final repo = ref.watch(spotifyRepositoryProvider);
-    final playlistsAsync = ref.watch(_tripPlaylistsProvider(tripId));
+    final loading = ref.watch(_spotifySuggestLoadingProvider(tripId));
+    final messenger = ScaffoldMessenger.of(context);
+    final selectedAsync = ref.watch(_selectedPlaylistProvider(tripId));
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
@@ -206,75 +207,124 @@ class _SpotifySuggestions extends ConsumerWidget {
                       style: Theme.of(context).textTheme.titleMedium,
                     ),
                   ),
-                  TextButton(
-                    onPressed: () => repo.searchAndStorePlaylists(
-                      country: country,
-                      tripId: tripId,
+                  if (selectedAsync.hasValue && selectedAsync.valueOrNull != null)
+                    IconButton(
+                      tooltip: 'Abrir playlist',
+                      onPressed: () {
+                        final p = selectedAsync.value!;
+                        if (p.deepLink == null) return;
+                        launchUrl(
+                          Uri.parse(p.deepLink!),
+                          mode: LaunchMode.externalApplication,
+                        );
+                      },
+                      icon: const Icon(Icons.open_in_new),
                     ),
-                    child: const Text('Sugerir'),
+                  TextButton(
+                    onPressed: loading
+                        ? null
+                        : () async {
+                            ref
+                                .read(_spotifySuggestLoadingProvider(tripId)
+                                    .notifier)
+                                .state = true;
+                            try {
+                              final options = await repo.suggestPlaylists(
+                                countryCode: country,
+                                limit: 3,
+                              );
+                              if (!context.mounted) return;
+                              if (options.isEmpty) {
+                                messenger.showSnackBar(
+                                  const SnackBar(
+                                    content: Text('Sem playlists encontradas.'),
+                                  ),
+                                );
+                                return;
+                              }
+                              final chosen = await showDialog<int>(
+                                context: context,
+                                builder: (ctx) => AlertDialog(
+                                  title: const Text('Escolher playlist'),
+                                  content: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      for (var i = 0; i < options.length; i++)
+                                        ListTile(
+                                          title: Text(options[i].name),
+                                          trailing:
+                                              const Icon(Icons.open_in_new),
+                                          onTap: () =>
+                                              Navigator.of(ctx).pop(i),
+                                        ),
+                                    ],
+                                  ),
+                                  actions: [
+                                    TextButton(
+                                      onPressed: () =>
+                                          Navigator.of(ctx).pop(null),
+                                      child: const Text('Cancelar'),
+                                    ),
+                                  ],
+                                ),
+                              );
+                              if (chosen == null) return;
+                              await repo.selectPlaylistForTrip(
+                                tripId: tripId,
+                                countryCode: country,
+                                playlist: options[chosen],
+                              );
+                              messenger.showSnackBar(
+                                const SnackBar(
+                                  content: Text('Playlist escolhida.'),
+                                ),
+                              );
+                            } catch (e) {
+                              messenger.showSnackBar(
+                                SnackBar(
+                                  content: Text('Erro Spotify: $e'),
+                                ),
+                              );
+                            } finally {
+                              ref
+                                  .read(_spotifySuggestLoadingProvider(tripId)
+                                      .notifier)
+                                  .state = false;
+                            }
+                          },
+                    child: Text(loading ? 'A buscar…' : 'Sugerir'),
                   ),
                 ],
               ),
               const SizedBox(height: 8),
-              playlistsAsync.when(
-                loading: () =>
-                    const Center(child: CircularProgressIndicator()),
+              selectedAsync.when(
+                loading: () => const SizedBox.shrink(),
                 error: (e, _) => Text('Erro: $e'),
-                data: (rows) {
-                  if (rows.isEmpty) {
+                data: (p) {
+                  if (p == null) {
                     return Text(
-                      'Carrega em “Sugerir” para buscar playlists via Spotify.',
+                      'Nenhuma playlist escolhida para esta viagem.',
                       style: Theme.of(context).textTheme.bodySmall,
                     );
                   }
-                  final p = rows.first;
-                  final tracksAsync = ref.watch(_playlistTracksProvider(p.id));
-                  return Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      Row(
-                        children: [
-                          Expanded(
-                            child: Text(
-                              p.name,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: Theme.of(context).textTheme.titleSmall,
+                  return ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    title: Text(
+                      p.name,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    subtitle: Text(
+                      'Playlist definida para a viagem',
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
+                    trailing: const Icon(Icons.open_in_new),
+                    onTap: p.deepLink == null
+                        ? null
+                        : () => launchUrl(
+                              Uri.parse(p.deepLink!),
+                              mode: LaunchMode.externalApplication,
                             ),
-                          ),
-                          IconButton(
-                            tooltip: 'Abrir no Spotify',
-                            onPressed: p.deepLink == null
-                                ? null
-                                : () => launchUrl(
-                                      Uri.parse(p.deepLink!),
-                                      mode: LaunchMode.externalApplication,
-                                    ),
-                            icon: const Icon(Icons.open_in_new),
-                          ),
-                          IconButton(
-                            tooltip: 'Atualizar previews',
-                            onPressed: () => repo.refreshPlaylistTracks(p.id),
-                            icon: const Icon(Icons.refresh),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 8),
-                      tracksAsync.when(
-                        loading: () => const SizedBox.shrink(),
-                        error: (e, _) => Text('Erro: $e'),
-                        data: (tracks) {
-                          final urls = tracks
-                              .map((t) => t.previewUrl)
-                              .whereType<String>()
-                              .toList();
-                          return PreviewPlayer(
-                            title: 'Previews',
-                            previewUrls: urls,
-                          );
-                        },
-                      ),
-                    ],
                   );
                 },
               ),
@@ -286,15 +336,15 @@ class _SpotifySuggestions extends ConsumerWidget {
   }
 }
 
-final _tripPlaylistsProvider =
+final _selectedPlaylistProvider =
     StreamProvider.autoDispose.family((ref, String tripId) {
-  return ref.watch(spotifyRepositoryProvider).watchPlaylistsForTrip(tripId);
+  return ref
+      .watch(spotifyRepositoryProvider)
+      .watchSelectedPlaylistForTrip(tripId);
 });
 
-final _playlistTracksProvider =
-    StreamProvider.autoDispose.family((ref, String playlistId) {
-  return ref.watch(spotifyRepositoryProvider).watchTracks(playlistId);
-});
+final _spotifySuggestLoadingProvider =
+    StateProvider.autoDispose.family<bool, String>((ref, tripId) => false);
 
 class _GeminiSuggestions extends ConsumerWidget {
   const _GeminiSuggestions({

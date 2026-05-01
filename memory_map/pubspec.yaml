@@ -46,6 +46,7 @@ dependencies:
   collection: ^1.18.0
   flag: ^7.0.0
   url_launcher: ^6.3.1
+  rxdart: ^0.28.0
 
   # Models
   freezed_annotation: ^3.0.0

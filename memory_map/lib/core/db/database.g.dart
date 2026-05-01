@@ -93,6 +93,17 @@ class $TripsTable extends Trips with TableInfo<$TripsTable, TripRow> {
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _selectedPlaylistIdMeta =
+      const VerificationMeta('selectedPlaylistId');
+  @override
+  late final GeneratedColumn<String> selectedPlaylistId =
+      GeneratedColumn<String>(
+        'selected_playlist_id',
+        aliasedName,
+        true,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+      );
   static const VerificationMeta _createdAtMeta = const VerificationMeta(
     'createdAt',
   );
@@ -114,6 +125,7 @@ class $TripsTable extends Trips with TableInfo<$TripsTable, TripRow> {
     endDate,
     status,
     coverMediaId,
+    selectedPlaylistId,
     createdAt,
   ];
   @override
@@ -187,6 +199,15 @@ class $TripsTable extends Trips with TableInfo<$TripsTable, TripRow> {
         ),
       );
     }
+    if (data.containsKey('selected_playlist_id')) {
+      context.handle(
+        _selectedPlaylistIdMeta,
+        selectedPlaylistId.isAcceptableOrUnknown(
+          data['selected_playlist_id']!,
+          _selectedPlaylistIdMeta,
+        ),
+      );
+    }
     if (data.containsKey('created_at')) {
       context.handle(
         _createdAtMeta,
@@ -236,6 +257,10 @@ class $TripsTable extends Trips with TableInfo<$TripsTable, TripRow> {
         DriftSqlType.string,
         data['${effectivePrefix}cover_media_id'],
       ),
+      selectedPlaylistId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}selected_playlist_id'],
+      ),
       createdAt: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
         data['${effectivePrefix}created_at'],
@@ -258,6 +283,7 @@ class TripRow extends DataClass implements Insertable<TripRow> {
   final int endDate;
   final String status;
   final String? coverMediaId;
+  final String? selectedPlaylistId;
   final int createdAt;
   const TripRow({
     required this.id,
@@ -268,6 +294,7 @@ class TripRow extends DataClass implements Insertable<TripRow> {
     required this.endDate,
     required this.status,
     this.coverMediaId,
+    this.selectedPlaylistId,
     required this.createdAt,
   });
   @override
@@ -282,6 +309,9 @@ class TripRow extends DataClass implements Insertable<TripRow> {
     map['status'] = Variable<String>(status);
     if (!nullToAbsent || coverMediaId != null) {
       map['cover_media_id'] = Variable<String>(coverMediaId);
+    }
+    if (!nullToAbsent || selectedPlaylistId != null) {
+      map['selected_playlist_id'] = Variable<String>(selectedPlaylistId);
     }
     map['created_at'] = Variable<int>(createdAt);
     return map;
@@ -299,6 +329,9 @@ class TripRow extends DataClass implements Insertable<TripRow> {
       coverMediaId: coverMediaId == null && nullToAbsent
           ? const Value.absent()
           : Value(coverMediaId),
+      selectedPlaylistId: selectedPlaylistId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(selectedPlaylistId),
       createdAt: Value(createdAt),
     );
   }
@@ -317,6 +350,9 @@ class TripRow extends DataClass implements Insertable<TripRow> {
       endDate: serializer.fromJson<int>(json['endDate']),
       status: serializer.fromJson<String>(json['status']),
       coverMediaId: serializer.fromJson<String?>(json['coverMediaId']),
+      selectedPlaylistId: serializer.fromJson<String?>(
+        json['selectedPlaylistId'],
+      ),
       createdAt: serializer.fromJson<int>(json['createdAt']),
     );
   }
@@ -332,6 +368,7 @@ class TripRow extends DataClass implements Insertable<TripRow> {
       'endDate': serializer.toJson<int>(endDate),
       'status': serializer.toJson<String>(status),
       'coverMediaId': serializer.toJson<String?>(coverMediaId),
+      'selectedPlaylistId': serializer.toJson<String?>(selectedPlaylistId),
       'createdAt': serializer.toJson<int>(createdAt),
     };
   }
@@ -345,6 +382,7 @@ class TripRow extends DataClass implements Insertable<TripRow> {
     int? endDate,
     String? status,
     Value<String?> coverMediaId = const Value.absent(),
+    Value<String?> selectedPlaylistId = const Value.absent(),
     int? createdAt,
   }) => TripRow(
     id: id ?? this.id,
@@ -355,6 +393,9 @@ class TripRow extends DataClass implements Insertable<TripRow> {
     endDate: endDate ?? this.endDate,
     status: status ?? this.status,
     coverMediaId: coverMediaId.present ? coverMediaId.value : this.coverMediaId,
+    selectedPlaylistId: selectedPlaylistId.present
+        ? selectedPlaylistId.value
+        : this.selectedPlaylistId,
     createdAt: createdAt ?? this.createdAt,
   );
   TripRow copyWithCompanion(TripsCompanion data) {
@@ -373,6 +414,9 @@ class TripRow extends DataClass implements Insertable<TripRow> {
       coverMediaId: data.coverMediaId.present
           ? data.coverMediaId.value
           : this.coverMediaId,
+      selectedPlaylistId: data.selectedPlaylistId.present
+          ? data.selectedPlaylistId.value
+          : this.selectedPlaylistId,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
     );
   }
@@ -388,6 +432,7 @@ class TripRow extends DataClass implements Insertable<TripRow> {
           ..write('endDate: $endDate, ')
           ..write('status: $status, ')
           ..write('coverMediaId: $coverMediaId, ')
+          ..write('selectedPlaylistId: $selectedPlaylistId, ')
           ..write('createdAt: $createdAt')
           ..write(')'))
         .toString();
@@ -403,6 +448,7 @@ class TripRow extends DataClass implements Insertable<TripRow> {
     endDate,
     status,
     coverMediaId,
+    selectedPlaylistId,
     createdAt,
   );
   @override
@@ -417,6 +463,7 @@ class TripRow extends DataClass implements Insertable<TripRow> {
           other.endDate == this.endDate &&
           other.status == this.status &&
           other.coverMediaId == this.coverMediaId &&
+          other.selectedPlaylistId == this.selectedPlaylistId &&
           other.createdAt == this.createdAt);
 }
 
@@ -429,6 +476,7 @@ class TripsCompanion extends UpdateCompanion<TripRow> {
   final Value<int> endDate;
   final Value<String> status;
   final Value<String?> coverMediaId;
+  final Value<String?> selectedPlaylistId;
   final Value<int> createdAt;
   final Value<int> rowid;
   const TripsCompanion({
@@ -440,6 +488,7 @@ class TripsCompanion extends UpdateCompanion<TripRow> {
     this.endDate = const Value.absent(),
     this.status = const Value.absent(),
     this.coverMediaId = const Value.absent(),
+    this.selectedPlaylistId = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.rowid = const Value.absent(),
   });
@@ -452,6 +501,7 @@ class TripsCompanion extends UpdateCompanion<TripRow> {
     required int endDate,
     this.status = const Value.absent(),
     this.coverMediaId = const Value.absent(),
+    this.selectedPlaylistId = const Value.absent(),
     required int createdAt,
     this.rowid = const Value.absent(),
   }) : id = Value(id),
@@ -468,6 +518,7 @@ class TripsCompanion extends UpdateCompanion<TripRow> {
     Expression<int>? endDate,
     Expression<String>? status,
     Expression<String>? coverMediaId,
+    Expression<String>? selectedPlaylistId,
     Expression<int>? createdAt,
     Expression<int>? rowid,
   }) {
@@ -480,6 +531,8 @@ class TripsCompanion extends UpdateCompanion<TripRow> {
       if (endDate != null) 'end_date': endDate,
       if (status != null) 'status': status,
       if (coverMediaId != null) 'cover_media_id': coverMediaId,
+      if (selectedPlaylistId != null)
+        'selected_playlist_id': selectedPlaylistId,
       if (createdAt != null) 'created_at': createdAt,
       if (rowid != null) 'rowid': rowid,
     });
@@ -494,6 +547,7 @@ class TripsCompanion extends UpdateCompanion<TripRow> {
     Value<int>? endDate,
     Value<String>? status,
     Value<String?>? coverMediaId,
+    Value<String?>? selectedPlaylistId,
     Value<int>? createdAt,
     Value<int>? rowid,
   }) {
@@ -506,6 +560,7 @@ class TripsCompanion extends UpdateCompanion<TripRow> {
       endDate: endDate ?? this.endDate,
       status: status ?? this.status,
       coverMediaId: coverMediaId ?? this.coverMediaId,
+      selectedPlaylistId: selectedPlaylistId ?? this.selectedPlaylistId,
       createdAt: createdAt ?? this.createdAt,
       rowid: rowid ?? this.rowid,
     );
@@ -538,6 +593,9 @@ class TripsCompanion extends UpdateCompanion<TripRow> {
     if (coverMediaId.present) {
       map['cover_media_id'] = Variable<String>(coverMediaId.value);
     }
+    if (selectedPlaylistId.present) {
+      map['selected_playlist_id'] = Variable<String>(selectedPlaylistId.value);
+    }
     if (createdAt.present) {
       map['created_at'] = Variable<int>(createdAt.value);
     }
@@ -558,6 +616,7 @@ class TripsCompanion extends UpdateCompanion<TripRow> {
           ..write('endDate: $endDate, ')
           ..write('status: $status, ')
           ..write('coverMediaId: $coverMediaId, ')
+          ..write('selectedPlaylistId: $selectedPlaylistId, ')
           ..write('createdAt: $createdAt, ')
           ..write('rowid: $rowid')
           ..write(')'))
@@ -3236,6 +3295,7 @@ typedef $$TripsTableCreateCompanionBuilder =
       required int endDate,
       Value<String> status,
       Value<String?> coverMediaId,
+      Value<String?> selectedPlaylistId,
       required int createdAt,
       Value<int> rowid,
     });
@@ -3249,6 +3309,7 @@ typedef $$TripsTableUpdateCompanionBuilder =
       Value<int> endDate,
       Value<String> status,
       Value<String?> coverMediaId,
+      Value<String?> selectedPlaylistId,
       Value<int> createdAt,
       Value<int> rowid,
     });
@@ -3298,6 +3359,11 @@ class $$TripsTableFilterComposer extends Composer<_$AppDatabase, $TripsTable> {
 
   ColumnFilters<String> get coverMediaId => $composableBuilder(
     column: $table.coverMediaId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get selectedPlaylistId => $composableBuilder(
+    column: $table.selectedPlaylistId,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -3356,6 +3422,11 @@ class $$TripsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get selectedPlaylistId => $composableBuilder(
+    column: $table.selectedPlaylistId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<int> get createdAt => $composableBuilder(
     column: $table.createdAt,
     builder: (column) => ColumnOrderings(column),
@@ -3401,6 +3472,11 @@ class $$TripsTableAnnotationComposer
     builder: (column) => column,
   );
 
+  GeneratedColumn<String> get selectedPlaylistId => $composableBuilder(
+    column: $table.selectedPlaylistId,
+    builder: (column) => column,
+  );
+
   GeneratedColumn<int> get createdAt =>
       $composableBuilder(column: $table.createdAt, builder: (column) => column);
 }
@@ -3441,6 +3517,7 @@ class $$TripsTableTableManager
                 Value<int> endDate = const Value.absent(),
                 Value<String> status = const Value.absent(),
                 Value<String?> coverMediaId = const Value.absent(),
+                Value<String?> selectedPlaylistId = const Value.absent(),
                 Value<int> createdAt = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => TripsCompanion(
@@ -3452,6 +3529,7 @@ class $$TripsTableTableManager
                 endDate: endDate,
                 status: status,
                 coverMediaId: coverMediaId,
+                selectedPlaylistId: selectedPlaylistId,
                 createdAt: createdAt,
                 rowid: rowid,
               ),
@@ -3465,6 +3543,7 @@ class $$TripsTableTableManager
                 required int endDate,
                 Value<String> status = const Value.absent(),
                 Value<String?> coverMediaId = const Value.absent(),
+                Value<String?> selectedPlaylistId = const Value.absent(),
                 required int createdAt,
                 Value<int> rowid = const Value.absent(),
               }) => TripsCompanion.insert(
@@ -3476,6 +3555,7 @@ class $$TripsTableTableManager
                 endDate: endDate,
                 status: status,
                 coverMediaId: coverMediaId,
+                selectedPlaylistId: selectedPlaylistId,
                 createdAt: createdAt,
                 rowid: rowid,
               ),

@@ -24,6 +24,7 @@ class LocalTripRepository implements TripRepository {
         endDate: DateTime.fromMillisecondsSinceEpoch(r.endDate),
         status: TripStatus.values.byName(r.status),
         coverMediaId: r.coverMediaId,
+        selectedPlaylistId: r.selectedPlaylistId,
         createdAt: DateTime.fromMillisecondsSinceEpoch(r.createdAt),
       );
 
@@ -135,6 +136,7 @@ class LocalTripRepository implements TripRepository {
         endDate: Value(trip.endDate.millisecondsSinceEpoch),
         status: Value(trip.status.name),
         coverMediaId: Value(trip.coverMediaId),
+        selectedPlaylistId: Value(trip.selectedPlaylistId),
       ),
     );
   }
@@ -325,5 +327,12 @@ class LocalTripRepository implements TripRepository {
   Future<void> setDayAudio(String dayId, String mediaId) async {
     await (db.update(db.days)..where((d) => d.id.equals(dayId)))
         .write(DaysCompanion(audioJournalMediaId: Value(mediaId)));
+  }
+
+  @override
+  Future<void> setTripPlaylist(String tripId, String? playlistId) async {
+    await (db.update(db.trips)..where((t) => t.id.equals(tripId))).write(
+      TripsCompanion(selectedPlaylistId: Value(playlistId)),
+    );
   }
 }

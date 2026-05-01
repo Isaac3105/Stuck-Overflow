@@ -7,6 +7,8 @@ import '../../../../core/services/media_capture_service.dart';
 import '../../../media/audio_player_tile.dart';
 import '../../../media/audio_recorder_button.dart';
 import '../../../media/photo_thumbnail.dart';
+import '../../../music/data/spotify_repository.dart';
+import '../../../music/presentation/trip_playlist_card.dart';
 import '../../data/trip_providers.dart';
 import '../../domain/day.dart';
 import '../../domain/media.dart';
@@ -119,6 +121,8 @@ class _TodayView extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final blocksAsync = ref.watch(dayBlocksProvider(day.id));
     final mediaAsync = ref.watch(dayMediaProvider(day.id));
+    final playlistAsync =
+        ref.watch(_selectedPlaylistProviderForTrip(tripId));
     final dateLabel =
         DateFormat("EEEE, d 'de' MMMM", 'pt_PT').format(day.date);
 
@@ -133,6 +137,14 @@ class _TodayView extends ConsumerWidget {
               ),
         ),
         const SizedBox(height: 12),
+        playlistAsync.when(
+          loading: () => const SizedBox.shrink(),
+          error: (e, _) => const SizedBox.shrink(),
+          data: (p) =>
+              p == null ? const SizedBox.shrink() : TripPlaylistCard(playlist: p),
+        ),
+        if (playlistAsync.hasValue && playlistAsync.valueOrNull != null)
+          const SizedBox(height: 12),
         WeatherCard(countries: countries),
         const SizedBox(height: 12),
         Row(
@@ -247,3 +259,10 @@ class _TodayView extends ConsumerWidget {
     );
   }
 }
+
+final _selectedPlaylistProviderForTrip =
+    StreamProvider.autoDispose.family((ref, String tripId) {
+  return ref
+      .watch(spotifyRepositoryProvider)
+      .watchSelectedPlaylistForTrip(tripId);
+});

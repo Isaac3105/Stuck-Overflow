@@ -13,6 +13,7 @@ class Trip {
     required this.endDate,
     required this.status,
     this.coverMediaId,
+    this.selectedPlaylistId,
     required this.createdAt,
   });
 
@@ -24,6 +25,7 @@ class Trip {
   final DateTime endDate;
   final TripStatus status;
   final String? coverMediaId;
+  final String? selectedPlaylistId;
   final DateTime createdAt;
 
   Trip copyWith({
@@ -34,6 +36,8 @@ class Trip {
     DateTime? endDate,
     TripStatus? status,
     String? coverMediaId,
+    String? selectedPlaylistId,
+    bool clearSelectedPlaylist = false,
   }) {
     return Trip(
       id: id,
@@ -44,6 +48,9 @@ class Trip {
       endDate: endDate ?? this.endDate,
       status: status ?? this.status,
       coverMediaId: coverMediaId ?? this.coverMediaId,
+      selectedPlaylistId: clearSelectedPlaylist
+          ? null
+          : (selectedPlaylistId ?? this.selectedPlaylistId),
       createdAt: createdAt,
     );
   }

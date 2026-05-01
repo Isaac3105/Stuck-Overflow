@@ -10,6 +10,7 @@ class Trips extends Table {
   IntColumn get endDate => integer()();
   TextColumn get status => text().withDefault(const Constant('planning'))();
   TextColumn get coverMediaId => text().nullable()();
+  TextColumn get selectedPlaylistId => text().nullable()();
   IntColumn get createdAt => integer()();
 
   @override
