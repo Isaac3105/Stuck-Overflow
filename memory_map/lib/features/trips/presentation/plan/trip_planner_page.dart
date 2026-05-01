@@ -1,6 +1,7 @@
 import 'package:flag/flag.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -9,6 +10,7 @@ import '../../../../core/services/gemini_service.dart';
 import '../../../../core/services/spotify_service.dart';
 import '../../data/trip_providers.dart';
 import '../../domain/day.dart';
+import '../../domain/trip.dart';
 import '../../../music/data/spotify_repository.dart';
 import '../widgets/activity_block_tile.dart';
 import '../widgets/empty_state.dart';
@@ -63,6 +65,17 @@ class _TripPlannerPageState extends ConsumerState<TripPlannerPage> {
   Widget build(BuildContext context) {
     final tripAsync = ref.watch(tripProvider(widget.tripId));
     final daysAsync = ref.watch(tripDaysProvider(widget.tripId));
+
+    ref.listen(tripProvider(widget.tripId), (previous, next) {
+      next.whenData((trip) {
+        if (trip == null ||
+            trip.resolvedStatus(DateTime.now()) == TripStatus.completed) {
+          if (context.mounted) {
+            context.go('/plan');
+          }
+        }
+      });
+    });
 
     return Scaffold(
       appBar: AppBar(
