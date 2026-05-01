@@ -20,7 +20,7 @@ class HomePage extends ConsumerWidget {
         title: const Text('Memory Map'),
         actions: [
           IconButton(
-            tooltip: 'Sortear outra',
+            tooltip: 'Shuffle',
             icon: const Icon(Icons.shuffle_rounded),
             onPressed: () => rollNewFeatured(ref),
           ),
@@ -28,28 +28,28 @@ class HomePage extends ConsumerWidget {
       ),
       body: featured.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(child: Text('Erro: $e')),
+        error: (e, _) => Center(child: Text('Error: $e')),
         data: (data) {
           if (data == null || data.photos.isEmpty) {
             return const EmptyState(
               icon: Icons.auto_stories_outlined,
-              title: 'Sem memórias ainda',
+              title: 'No memories yet',
               message:
-                  'Termina uma viagem com fotos e áudios e ela vai aparecer aqui como uma memória pronta a reviver.',
+                  'Finish a trip with photos and audios and it will appear here as a memory ready to relive.',
             );
           }
           return ListView(
             padding: const EdgeInsets.all(16),
             children: [
               Text(
-                'Hoje, recordamos…',
+                'Today, we remember...',
                 style: Theme.of(context).textTheme.titleMedium,
               ),
               const SizedBox(height: 12),
               _FeaturedCard(data: data),
               const SizedBox(height: 16),
               Text(
-                'Dica: podes gravar um áudio diário durante a viagem e ele pode servir de “som de fundo” para as memórias.',
+                'Tip: you can record a daily audio during the trip and it can serve as a "background sound" for the memories.',
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
                       color: Theme.of(context).colorScheme.onSurfaceVariant,
                     ),
@@ -69,7 +69,7 @@ class _FeaturedCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cover = data.coverImagePath;
-    final df = DateFormat('d MMM yyyy', 'pt_PT');
+    final df = DateFormat('d MMM yyyy', 'en');
     final period = '${df.format(data.trip.startDate)} → ${df.format(data.trip.endDate)}';
 
     return GestureDetector(
@@ -142,7 +142,7 @@ class _FeaturedCard extends StatelessWidget {
                             color: Colors.white, size: 28),
                         SizedBox(width: 8),
                         Text(
-                          'Toca para reviver',
+                          'Tap to relive',
                           style: TextStyle(color: Colors.white),
                         ),
                       ],

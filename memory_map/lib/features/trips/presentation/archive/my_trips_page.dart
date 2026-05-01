@@ -10,6 +10,7 @@ import 'package:intl/intl.dart';
 
 import '../../../../core/data/countries.dart';
 import '../../data/trip_providers.dart';
+import '../../domain/media.dart';
 import '../../domain/trip.dart';
 import '../home/home_providers.dart';
 import '../home/story_player_page.dart';
