@@ -32,18 +32,18 @@ class _TripPlannerPageState extends ConsumerState<TripPlannerPage> {
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Apagar viagem'),
+        title: const Text('Delete trip'),
         content: const Text(
-          'Esta acção remove a viagem, dias, blocos e mídia associada. Tens a certeza?',
+          'This action removes the trip, days, blocks, and associated media. Are you sure?',
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Cancelar'),
+            child: const Text('Cancel'),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Apagar'),
+            child: const Text('Delete'),
           ),
         ],
       ),
@@ -81,7 +81,7 @@ class _TripPlannerPageState extends ConsumerState<TripPlannerPage> {
       appBar: AppBar(
         title: tripAsync.maybeWhen(
           data: (t) => Text(t?.name ?? ''),
-          orElse: () => const Text('Viagem'),
+          orElse: () => const Text('Trip'),
         ),
         actions: [
           PopupMenuButton<String>(
@@ -89,7 +89,7 @@ class _TripPlannerPageState extends ConsumerState<TripPlannerPage> {
               if (v == 'delete') _confirmDelete();
             },
             itemBuilder: (ctx) => const [
-              PopupMenuItem(value: 'delete', child: Text('Apagar viagem')),
+              PopupMenuItem(value: 'delete', child: Text('Delete trip')),
             ],
           ),
         ],
@@ -101,13 +101,13 @@ class _TripPlannerPageState extends ConsumerState<TripPlannerPage> {
           if (trip == null) return const SizedBox.shrink();
           return daysAsync.when(
             loading: () => const Center(child: CircularProgressIndicator()),
-            error: (e, _) => Center(child: Text('Erro: $e')),
+            error: (e, _) => Center(child: Text('Error: $e')),
             data: (days) {
               if (days.isEmpty) {
                 return const EmptyState(
                   icon: Icons.event_outlined,
-                  title: 'Sem dias',
-                  message: 'Esta viagem ainda não tem dias gerados.',
+                  title: 'No days',
+                  message: 'This trip does not have any days generated yet.',
                 );
               }
               final selected =
@@ -214,13 +214,13 @@ class _SpotifySuggestions extends ConsumerWidget {
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      'Playlists locais',
+                      'Local playlists',
                       style: Theme.of(context).textTheme.titleMedium,
                     ),
                   ),
                   if (selectedAsync.hasValue && selectedAsync.valueOrNull != null)
                     IconButton(
-                      tooltip: 'Abrir playlist',
+                      tooltip: 'Open playlist',
                       onPressed: () {
                         final p = selectedAsync.value!;
                         if (p.deepLink == null) return;
@@ -242,18 +242,18 @@ class _SpotifySuggestions extends ConsumerWidget {
                         ),
                       );
                     },
-                    child: const Text('Escolher'),
+                    child: const Text('Choose'),
                   ),
                 ],
               ),
               const SizedBox(height: 8),
               selectedAsync.when(
                 loading: () => const SizedBox.shrink(),
-                error: (e, _) => Text('Erro: $e'),
+                error: (e, _) => Text('Error: $e'),
                 data: (p) {
                   if (p == null) {
                     return Text(
-                      'Nenhuma playlist escolhida para esta viagem.',
+                      'No playlist chosen for this trip.',
                       style: Theme.of(context).textTheme.bodySmall,
                     );
                   }
@@ -265,7 +265,7 @@ class _SpotifySuggestions extends ConsumerWidget {
                       overflow: TextOverflow.ellipsis,
                     ),
                     subtitle: Text(
-                      'Playlist definida para a viagem',
+                      'Playlist set for the trip',
                       style: Theme.of(context).textTheme.bodySmall,
                     ),
                     trailing: const Icon(Icons.open_in_new),
@@ -315,7 +315,7 @@ class _SpotifyPlaylistPickerSheet extends ConsumerWidget {
               children: [
                 Expanded(
                   child: Text(
-                    'Escolher playlist',
+                    'Choose playlist',
                     style: Theme.of(context).textTheme.titleLarge,
                   ),
                 ),
@@ -325,7 +325,7 @@ class _SpotifyPlaylistPickerSheet extends ConsumerWidget {
                       (tripId: tripId, countryCode: countryCode),
                     ),
                   ),
-                  child: const Text('Atualizar'),
+                  child: const Text('Refresh'),
                 ),
               ],
             ),
@@ -337,14 +337,14 @@ class _SpotifyPlaylistPickerSheet extends ConsumerWidget {
               ),
               error: (e, _) => Padding(
                 padding: const EdgeInsets.symmetric(vertical: 12),
-                child: Text('Erro Spotify: $e'),
+                child: Text('Spotify error: $e'),
               ),
               data: (options) {
                 if (options.isEmpty) {
                   return Padding(
                     padding: const EdgeInsets.symmetric(vertical: 12),
                     child: Text(
-                      'Sem sugestões. Tenta “Atualizar”.',
+                      'No suggestions. Try "Refresh".',
                       style: Theme.of(context).textTheme.bodySmall,
                     ),
                   );
@@ -369,7 +369,7 @@ class _SpotifyPlaylistPickerSheet extends ConsumerWidget {
                             spacing: 8,
                             children: [
                               IconButton(
-                                tooltip: 'Abrir no Spotify',
+                                tooltip: 'Open in Spotify',
                                 onPressed: () => launchUrl(
                                   Uri.parse(p.deepLink),
                                   mode: LaunchMode.externalApplication,
@@ -386,7 +386,7 @@ class _SpotifyPlaylistPickerSheet extends ConsumerWidget {
                                     );
                                     messenger.showSnackBar(
                                       const SnackBar(
-                                        content: Text('Playlist escolhida.'),
+                                        content: Text('Playlist chosen.'),
                                       ),
                                     );
                                     if (context.mounted) {
@@ -395,12 +395,12 @@ class _SpotifyPlaylistPickerSheet extends ConsumerWidget {
                                   } catch (e) {
                                     messenger.showSnackBar(
                                       SnackBar(
-                                        content: Text('Erro Spotify: $e'),
+                                        content: Text('Spotify error: $e'),
                                       ),
                                     );
                                   }
                                 },
-                                child: const Text('Escolher'),
+                                child: const Text('Choose'),
                               ),
                             ],
                           ),
@@ -463,24 +463,24 @@ class _GeminiSuggestions extends ConsumerWidget {
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      'Sugestões culturais (IA)',
+                      'Cultural suggestions (AI)',
                       style: Theme.of(context).textTheme.titleMedium,
                     ),
                   ),
                   TextButton(
                     onPressed: () => ref.invalidate(_geminiPlacesProvider((country: country, city: city))),
-                    child: const Text('Gerar'),
+                    child: const Text('Generate'),
                   ),
                 ],
               ),
               const SizedBox(height: 8),
               async.when(
                 loading: () => const Center(child: CircularProgressIndicator()),
-                error: (e, _) => Text('Erro: $e'),
+                error: (e, _) => Text('Error: $e'),
                 data: (items) {
                   if (items.isEmpty) {
                     return Text(
-                      'Sem sugestões. Tenta “Gerar” novamente.',
+                      'No suggestions. Try "Generate" again.',
                       style: Theme.of(context).textTheme.bodySmall,
                     );
                   }
@@ -537,9 +537,9 @@ class _DaysStrip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    final dfDay = DateFormat('d', 'pt_PT');
-    final dfMonth = DateFormat('MMM', 'pt_PT');
-    final dfWeekday = DateFormat('EEE', 'pt_PT');
+    final dfDay = DateFormat('d', 'en');
+    final dfMonth = DateFormat('MMM', 'en');
+    final dfWeekday = DateFormat('EEE', 'en');
     return SizedBox(
       height: 84,
       child: ListView.separated(
@@ -611,17 +611,17 @@ class _DayBlocksList extends ConsumerWidget {
     final blocksAsync = ref.watch(dayBlocksProvider(day.id));
     return blocksAsync.when(
       loading: () => const Center(child: CircularProgressIndicator()),
-      error: (e, _) => Center(child: Text('Erro: $e')),
+      error: (e, _) => Center(child: Text('Error: $e')),
       data: (blocks) {
         if (blocks.isEmpty) {
           return EmptyState(
             icon: Icons.add_chart,
-            title: 'Sem actividades',
-            message: 'Cria o primeiro bloco para este dia.',
+            title: 'No activities',
+            message: 'Create the first block for this day.',
             action: FilledButton.icon(
               onPressed: onAdd,
               icon: const Icon(Icons.add),
-              label: const Text('Adicionar bloco'),
+              label: const Text('Add block'),
             ),
           );
         }
@@ -647,7 +647,7 @@ class _DayBlocksList extends ConsumerWidget {
               child: FloatingActionButton.extended(
                 onPressed: onAdd,
                 icon: const Icon(Icons.add),
-                label: const Text('Bloco'),
+                label: const Text('Block'),
               ),
             ),
           ],

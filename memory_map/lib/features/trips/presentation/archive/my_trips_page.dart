@@ -2,16 +2,19 @@
 import 'dart:async';
 import 'dart:io';
 
+import 'package:flag/flag.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
+import '../../../../core/data/countries.dart';
 import '../../data/trip_providers.dart';
 import '../../domain/media.dart';
 import '../../domain/trip.dart';
 import '../home/home_providers.dart';
 import '../home/story_player_page.dart';
+import '../widgets/trip_card.dart';
 
 class MyTrips extends ConsumerWidget {
   const MyTrips({super.key});
@@ -22,7 +25,7 @@ class MyTrips extends ConsumerWidget {
 
     return tripsAsync.when(
       loading: () => const Center(child: CircularProgressIndicator()),
-      error: (e, _) => Center(child: Text('Erro: $e')),
+      error: (e, _) => Center(child: Text('Error: $e')),
       data: (trips) {
         final now = DateTime.now();
         final completed = trips
@@ -39,7 +42,7 @@ class MyTrips extends ConsumerWidget {
                   children: [
                     Expanded(
                       child: SearchBar(
-                        hintText: 'Pesquisar viagens...',
+                        hintText: 'Search trips...',
                         leading: const Icon(Icons.search),
                         padding: const WidgetStatePropertyAll(
                           EdgeInsets.symmetric(horizontal: 16),
@@ -64,16 +67,15 @@ class MyTrips extends ConsumerWidget {
               ),
               Expanded(
                 child: completed.isEmpty
-                    ? const Center(child: Text('Sem viagens concluídas.'))
+                    ? const Center(child: Text('No completed trips.'))
                     : GridView.builder(
-                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
                         physics: const ClampingScrollPhysics(),
-                        gridDelegate:
-                            const SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: 2,
-                          crossAxisSpacing: 16,
-                          mainAxisSpacing: 16,
-                          childAspectRatio: 0.85,
+                        gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+                          maxCrossAxisExtent: 240,
+                          mainAxisExtent: 220,
+                          crossAxisSpacing: 12,
+                          mainAxisSpacing: 12,
                         ),
                         itemCount: completed.length,
                         itemBuilder: (context, index) =>
@@ -294,98 +296,13 @@ class _TripCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final coverPath = ref.watch(_coverImagePathProvider(trip));
-    final range =
-        '${DateFormat('dd/MM/yy').format(trip.startDate)} - ${DateFormat('dd/MM/yy').format(trip.endDate)}';
-    final subtitle = [
-      if (trip.countries.isNotEmpty) trip.countries.first,
-      if (trip.cities.isNotEmpty) trip.cities.first,
-    ].join(', ');
 
-    return Card(
-      clipBehavior: Clip.antiAlias,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      child: InkWell(
-        onTap: () => showDialog(
-          context: context,
-          builder: (_) => _TripPreviewDialog(trip: trip),
-        ),
-        child: Stack(
-          fit: StackFit.expand,
-          children: [
-            if (coverPath != null)
-              Image.file(File(coverPath), fit: BoxFit.cover)
-            else
-              Container(
-                color: Theme.of(context).colorScheme.surfaceContainerHigh,
-                child: const Center(child: Icon(Icons.image_outlined, size: 36)),
-              ),
-            Container(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [
-                    Colors.black.withOpacity(0.35),
-                    Colors.transparent,
-                    Colors.black.withOpacity(0.85),
-                  ],
-                  stops: const [0.0, 0.55, 1.0],
-                ),
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.all(12.0),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    trip.name,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 14,
-                      shadows: [
-                        Shadow(
-                          color: Colors.black45,
-                          blurRadius: 4,
-                          offset: Offset(2, 2),
-                        ),
-                      ],
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        subtitle,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 13,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        range,
-                        style: const TextStyle(
-                          color: Colors.white70,
-                          fontSize: 10,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
+    return TripCard(
+      trip: trip,
+      coverImagePath: coverPath,
+      onTap: () => showDialog(
+        context: context,
+        builder: (_) => _TripPreviewDialog(trip: trip),
       ),
     );
   }
@@ -399,11 +316,16 @@ class _TripPreviewDialog extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final featuredAsync = ref.watch(tripFeaturedDataProvider(trip.id));
     final range =
-        '${DateFormat('d MMM yyyy', 'pt_PT').format(trip.startDate)} → ${DateFormat('d MMM yyyy', 'pt_PT').format(trip.endDate)}';
-    final place = [
-      if (trip.countries.isNotEmpty) trip.countries.first,
-      if (trip.cities.isNotEmpty) trip.cities.first,
-    ].join(', ');
+        '${DateFormat('d MMM yyyy', 'en').format(trip.startDate)} → ${DateFormat('d MMM yyyy', 'en').format(trip.endDate)}';
+    
+    final locationParts = <String>[];
+    if (trip.countries.isNotEmpty) {
+      locationParts.add(countryNameEn(trip.countries.first));
+    }
+    if (trip.cities.isNotEmpty) {
+      locationParts.add(trip.cities.first);
+    }
+    final place = locationParts.join(', ');
 
     return Dialog(
       backgroundColor: Colors.transparent,
@@ -455,10 +377,30 @@ class _TripPreviewDialog extends ConsumerWidget {
                   ),
                 ),
               ),
+              Positioned(
+                top: 16,
+                left: 16,
+                child: Wrap(
+                  spacing: 4,
+                  children: trip.countries
+                      .take(4)
+                      .map(
+                        (c) => ClipRRect(
+                          borderRadius: BorderRadius.circular(3),
+                          child: SizedBox(
+                            width: 32,
+                            height: 22,
+                            child: Flag.fromString(c, fit: BoxFit.cover),
+                          ),
+                        ),
+                      )
+                      .toList(),
+                ),
+              ),
               Padding(
                 padding: const EdgeInsets.all(24.0),
                 child: Column(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  mainAxisAlignment: MainAxisAlignment.end,
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     Column(
@@ -468,7 +410,7 @@ class _TripPreviewDialog extends ConsumerWidget {
                           trip.name,
                           style: const TextStyle(
                             color: Colors.white,
-                            fontSize: 28,
+                            fontSize: 32,
                             fontWeight: FontWeight.bold,
                           ),
                           maxLines: 2,
@@ -498,6 +440,7 @@ class _TripPreviewDialog extends ConsumerWidget {
                         ),
                       ],
                     ),
+                    const SizedBox(height: 16),
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
@@ -592,16 +535,26 @@ class _TripPreviewDialog extends ConsumerWidget {
 
 final _coverImagePathProvider =
     Provider.autoDispose.family<String?, Trip>((ref, trip) {
+  if (trip.coverMediaId == null) {
+    final mediaAsync = ref.watch(tripMediaProvider(trip.id));
+    return mediaAsync.maybeWhen(
+      data: (list) {
+        for (final m in list) {
+          if (m.type.name == 'photo') return m.filePath;
+        }
+        return null;
+      },
+      orElse: () => null,
+    );
+  }
   final mediaAsync = ref.watch(tripMediaProvider(trip.id));
   return mediaAsync.maybeWhen(
     data: (list) {
-      if (trip.coverMediaId != null) {
-        for (final m in list) {
-          if (m.id == trip.coverMediaId) return m.filePath;
-        }
+      for (final m in list) {
+        if (m.id == trip.coverMediaId) return m.filePath;
       }
       for (final m in list) {
-        if (m.type == MediaType.photo) return m.filePath;
+        if (m.type.name == 'photo') return m.filePath;
       }
       return null;
     },
@@ -654,4 +607,3 @@ class _TripBackgroundSlideshowState extends State<_TripBackgroundSlideshow> {
     );
   }
 }
-
