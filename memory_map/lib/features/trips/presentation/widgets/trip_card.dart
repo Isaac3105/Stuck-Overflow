@@ -65,21 +65,49 @@ class TripCard extends StatelessWidget {
             Positioned(
               left: 12,
               top: 12,
-              child: Wrap(
-                spacing: 4,
-                children: trip.countries
-                    .take(4)
-                    .map(
-                      (c) => ClipRRect(
-                        borderRadius: BorderRadius.circular(3),
-                        child: SizedBox(
-                          width: 24,
-                          height: 16,
-                          child: Flag.fromString(c, fit: BoxFit.cover),
+              right: 12,
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Wrap(
+                    spacing: 4,
+                    children: trip.countries
+                        .take(4)
+                        .map(
+                          (c) => ClipRRect(
+                            borderRadius: BorderRadius.circular(3),
+                            child: SizedBox(
+                              width: 24,
+                              height: 16,
+                              child: Flag.fromString(c, fit: BoxFit.cover),
+                            ),
+                          ),
+                        )
+                        .toList(),
+                  ),
+                  if (subtitle.isNotEmpty) ...[
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        subtitle,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 13,
+                          shadows: [
+                            Shadow(
+                              color: Colors.black45,
+                              blurRadius: 4,
+                              offset: Offset(2, 2),
+                            ),
+                          ],
                         ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
-                    )
-                    .toList(),
+                    ),
+                  ],
+                ],
               ),
             ),
             Padding(
@@ -92,8 +120,8 @@ class TripCard extends StatelessWidget {
                     trip.name,
                     style: const TextStyle(
                       color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 18,
+                      fontWeight: FontWeight.w900,
+                      fontSize: 24,
                       shadows: [
                         Shadow(
                           color: Colors.black45,
@@ -105,30 +133,16 @@ class TripCard extends StatelessWidget {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        subtitle,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 13,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        range,
-                        style: const TextStyle(
-                          color: Colors.white70,
-                          fontSize: 10,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ],
+                  const SizedBox(height: 2),
+                  Text(
+                    range,
+                    style: const TextStyle(
+                      color: Colors.white70,
+                      fontWeight: FontWeight.w500,
+                      fontSize: 12,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ],
               ),

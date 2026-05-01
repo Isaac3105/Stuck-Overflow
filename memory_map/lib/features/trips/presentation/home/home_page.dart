@@ -49,7 +49,7 @@ class HomePage extends ConsumerWidget {
               _FeaturedCard(data: data),
               const SizedBox(height: 16),
               Text(
-                'Tip: you can record a daily audio during the trip and it can serve as a "background sound" for the memories.',
+                'Tip: you can record audios during the trip and they can serve as a "background sound" for the memories.',
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
                       color: Theme.of(context).colorScheme.onSurfaceVariant,
                     ),
