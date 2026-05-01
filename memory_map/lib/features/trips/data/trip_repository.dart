@@ -54,4 +54,10 @@ abstract class TripRepository {
   Future<void> setTripCover(String tripId, String mediaId);
   Future<void> setDayAudio(String dayId, String mediaId);
   Future<void> setTripPlaylist(String tripId, String? playlistId);
+
+  /// Persists 1–5 for a calendar day and refreshes [Trip.averageDayRating] when all days are rated.
+  Future<void> setDayRating({required String dayId, required int stars});
+
+  /// Removes the day rating (e.g. user ended the day by mistake).
+  Future<void> clearDayRating(String dayId);
 }

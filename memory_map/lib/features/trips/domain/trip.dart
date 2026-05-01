@@ -14,6 +14,7 @@ class Trip {
     required this.status,
     this.coverMediaId,
     this.selectedPlaylistId,
+    this.averageDayRating,
     required this.createdAt,
   });
 
@@ -26,6 +27,8 @@ class Trip {
   final TripStatus status;
   final String? coverMediaId;
   final String? selectedPlaylistId;
+  /// Mean of [1..5] day ratings when every trip day has been rated; otherwise null.
+  final double? averageDayRating;
   final DateTime createdAt;
 
   Trip copyWith({
@@ -38,6 +41,8 @@ class Trip {
     String? coverMediaId,
     String? selectedPlaylistId,
     bool clearSelectedPlaylist = false,
+    double? averageDayRating,
+    bool clearAverageDayRating = false,
   }) {
     return Trip(
       id: id,
@@ -51,6 +56,9 @@ class Trip {
       selectedPlaylistId: clearSelectedPlaylist
           ? null
           : (selectedPlaylistId ?? this.selectedPlaylistId),
+      averageDayRating: clearAverageDayRating
+          ? null
+          : (averageDayRating ?? this.averageDayRating),
       createdAt: createdAt,
     );
   }

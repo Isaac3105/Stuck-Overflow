@@ -13,11 +13,45 @@ import '../../domain/trip.dart';
 import '../home/home_providers.dart';
 import '../home/story_player_page.dart';
 
-class MyTrips extends ConsumerWidget {
+enum _MyTripsSort { byDateDesc, byRatingDesc, byCountry }
+
+class _MyTripsFilterState {
+  const _MyTripsFilterState({
+    this.ratingRange = const RangeValues(0, 5),
+    this.destinationQuery = '',
+    this.dateRange,
+  });
+
+  final RangeValues ratingRange;
+  final String destinationQuery;
+  final DateTimeRange? dateRange;
+}
+
+class MyTrips extends ConsumerStatefulWidget {
   const MyTrips({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<MyTrips> createState() => _MyTripsState();
+}
+
+class _MyTripsState extends ConsumerState<MyTrips> {
+  String _searchQuery = '';
+  _MyTripsSort _sort = _MyTripsSort.byDateDesc;
+  _MyTripsFilterState _filters = const _MyTripsFilterState();
+
+  List<Trip> _visibleTrips(List<Trip> all, DateTime now) {
+    final completed = all
+        .where((t) => t.resolvedStatus(now) == TripStatus.completed)
+        .where((t) => _matchesSearch(t, _searchQuery))
+        .where((t) => _matchesRating(t, _filters.ratingRange))
+        .where((t) => _matchesDestination(t, _filters.destinationQuery))
+        .where((t) => _matchesDateRange(t, _filters.dateRange))
+        .toList(growable: false);
+    return _sortTrips(completed, _sort);
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final tripsAsync = ref.watch(allTripsProvider);
 
     return tripsAsync.when(
@@ -25,14 +59,11 @@ class MyTrips extends ConsumerWidget {
       error: (e, _) => Center(child: Text('Erro: $e')),
       data: (trips) {
         final now = DateTime.now();
-        final completed = trips
-            .where((t) => t.resolvedStatus(now) == TripStatus.completed)
-            .toList(growable: false);
+        final visible = _visibleTrips(trips, now);
 
         return SafeArea(
           child: Column(
             children: [
-              // Search Bar + Sort & Filter Buttons
               Padding(
                 padding: const EdgeInsets.all(16.0),
                 child: Row(
@@ -44,7 +75,7 @@ class MyTrips extends ConsumerWidget {
                         padding: const WidgetStatePropertyAll(
                           EdgeInsets.symmetric(horizontal: 16),
                         ),
-                        onChanged: (value) {},
+                        onChanged: (value) => setState(() => _searchQuery = value),
                       ),
                     ),
                     const SizedBox(width: 8),
@@ -63,7 +94,7 @@ class MyTrips extends ConsumerWidget {
                 ),
               ),
               Expanded(
-                child: completed.isEmpty
+                child: visible.isEmpty
                     ? const Center(child: Text('Sem viagens concluídas.'))
                     : GridView.builder(
                         padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -75,9 +106,9 @@ class MyTrips extends ConsumerWidget {
                           mainAxisSpacing: 16,
                           childAspectRatio: 0.85,
                         ),
-                        itemCount: completed.length,
+                        itemCount: visible.length,
                         itemBuilder: (context, index) =>
-                            _TripCard(trip: completed[index]),
+                            _TripCard(trip: visible[index]),
                       ),
               ),
             ],
@@ -105,13 +136,13 @@ class MyTrips extends ConsumerWidget {
     );
   }
 
-  void _showSortSheet(BuildContext context) {
-    showModalBottomSheet(
+  Future<void> _showSortSheet(BuildContext context) async {
+    final chosen = await showModalBottomSheet<_MyTripsSort>(
       context: context,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      builder: (context) {
+      builder: (ctx) {
         return Padding(
           padding: const EdgeInsets.all(20.0),
           child: Column(
@@ -119,170 +150,263 @@ class MyTrips extends ConsumerWidget {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               const Text(
-                'Sort By',
+                'Ordenar por',
                 style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 16),
               ListTile(
                 leading: const Icon(Icons.calendar_today),
-                title: const Text('Date'),
-                onTap: () => Navigator.pop(context),
+                title: const Text('Data (mais recente)'),
+                onTap: () => Navigator.pop(ctx, _MyTripsSort.byDateDesc),
               ),
               ListTile(
                 leading: const Icon(Icons.language),
-                title: const Text('Country Name'),
-                onTap: () => Navigator.pop(context),
+                title: const Text('País'),
+                onTap: () => Navigator.pop(ctx, _MyTripsSort.byCountry),
               ),
               ListTile(
                 leading: const Icon(Icons.star_outline),
-                title: const Text('Rating'),
-                onTap: () => Navigator.pop(context),
+                title: const Text('Classificação'),
+                onTap: () => Navigator.pop(ctx, _MyTripsSort.byRatingDesc),
               ),
             ],
           ),
         );
       },
     );
+    if (chosen != null && mounted) setState(() => _sort = chosen);
   }
 
-  void _showFilterSheet(BuildContext context) {
-    RangeValues ratingRange = const RangeValues(0.0, 5.0);
-
-    showModalBottomSheet(
+  Future<void> _showFilterSheet(BuildContext context) async {
+    final applied = await showModalBottomSheet<_MyTripsFilterState>(
       context: context,
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      builder: (context) {
-        return StatefulBuilder(
-          builder: (context, setModalState) {
-            return Padding(
-              padding: EdgeInsets.only(
-                bottom: MediaQuery.of(context).viewInsets.bottom,
-                left: 20,
-                right: 20,
-                top: 20,
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const Text(
-                        'Filter Configuration',
-                        style: TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      IconButton(
-                        onPressed: () => Navigator.pop(context),
-                        icon: const Icon(Icons.close),
-                      ),
-                    ],
-                  ),
-                  const Divider(),
-                  const SizedBox(height: 16),
-                  const Text(
-                    'Destination',
-                    style: TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(height: 8),
-                  const TextField(
-                    decoration: InputDecoration(
-                      hintText: 'Enter country or city',
-                      prefixIcon: Icon(Icons.location_on_outlined),
-                      border: OutlineInputBorder(),
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const Text(
-                        'Rating Range',
-                        style: TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                      Text(
-                        '${ratingRange.start.toStringAsFixed(1)} ★ - ${ratingRange.end.toStringAsFixed(1)} ★',
-                        style: TextStyle(
-                          color: Theme.of(context).colorScheme.primary,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ],
-                  ),
-                  RangeSlider(
-                    values: ratingRange,
-                    min: 0.0,
-                    max: 5.0,
-                    divisions: 5,
-                    labels: RangeLabels(
-                      ratingRange.start.toStringAsFixed(1),
-                      ratingRange.end.toStringAsFixed(1),
-                    ),
-                    onChanged: (values) {
-                      setModalState(() {
-                        ratingRange = values;
-                      });
-                    },
-                  ),
-                  const SizedBox(height: 20),
-                  const Text(
-                    'Date Range',
-                    style: TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(height: 8),
-                  OutlinedButton.icon(
-                    onPressed: () {},
-                    icon: const Icon(Icons.calendar_month),
-                    label: const Text('Select Dates'),
-                    style: OutlinedButton.styleFrom(
-                      alignment: Alignment.centerLeft,
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 12,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 32),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: TextButton(
-                          onPressed: () => Navigator.pop(context),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor:
-                                Theme.of(context).colorScheme.primary,
-                            foregroundColor: Colors.white,
-                          ),
-                          child: const Text('Reset All'),
-                        ),
-                      ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: ElevatedButton(
-                          onPressed: () => Navigator.pop(context),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor:
-                                Theme.of(context).colorScheme.primary,
-                            foregroundColor: Colors.white,
-                          ),
-                          child: const Text('Apply Filters'),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 20),
-                ],
-              ),
-            );
-          },
-        );
+      builder: (sheetCtx) {
+        return _FilterSheetBody(initial: _filters);
       },
+    );
+    if (applied != null && mounted) setState(() => _filters = applied);
+  }
+}
+
+List<Trip> _sortTrips(List<Trip> trips, _MyTripsSort sort) {
+  final out = [...trips];
+  switch (sort) {
+    case _MyTripsSort.byDateDesc:
+      out.sort((a, b) => b.endDate.compareTo(a.endDate));
+      break;
+    case _MyTripsSort.byRatingDesc:
+      out.sort((a, b) {
+        final ba = b.averageDayRating ?? -1;
+        final aa = a.averageDayRating ?? -1;
+        return ba.compareTo(aa);
+      });
+      break;
+    case _MyTripsSort.byCountry:
+      out.sort((a, b) => (a.countries.isEmpty ? '' : a.countries.first)
+          .compareTo(b.countries.isEmpty ? '' : b.countries.first));
+      break;
+  }
+  return out;
+}
+
+bool _matchesSearch(Trip t, String q) {
+  final s = q.trim().toLowerCase();
+  if (s.isEmpty) return true;
+  return t.name.toLowerCase().contains(s) ||
+      t.countries.any((c) => c.toLowerCase().contains(s)) ||
+      t.cities.any((c) => c.toLowerCase().contains(s));
+}
+
+bool _matchesRating(Trip t, RangeValues r) {
+  final v = t.averageDayRating;
+  if (v == null) return r.start <= 0.01;
+  return v + 1e-9 >= r.start && v - 1e-9 <= r.end;
+}
+
+bool _matchesDestination(Trip t, String q) {
+  final s = q.trim().toLowerCase();
+  if (s.isEmpty) return true;
+  return t.name.toLowerCase().contains(s) ||
+      t.countries.any((c) => c.toLowerCase().contains(s)) ||
+      t.cities.any((c) => c.toLowerCase().contains(s));
+}
+
+bool _matchesDateRange(Trip t, DateTimeRange? dr) {
+  if (dr == null) return true;
+  final tripStart = DateTime(t.startDate.year, t.startDate.month, t.startDate.day);
+  final tripEnd = DateTime(t.endDate.year, t.endDate.month, t.endDate.day);
+  final r0 = DateTime(dr.start.year, dr.start.month, dr.start.day);
+  final r1 = DateTime(dr.end.year, dr.end.month, dr.end.day);
+  return !(tripEnd.isBefore(r0) || tripStart.isAfter(r1));
+}
+
+class _FilterSheetBody extends StatefulWidget {
+  const _FilterSheetBody({required this.initial});
+  final _MyTripsFilterState initial;
+
+  @override
+  State<_FilterSheetBody> createState() => _FilterSheetBodyState();
+}
+
+class _FilterSheetBodyState extends State<_FilterSheetBody> {
+  late RangeValues _ratingRange;
+  late final TextEditingController _destination;
+  DateTimeRange? _dateRange;
+
+  @override
+  void initState() {
+    super.initState();
+    _ratingRange = widget.initial.ratingRange;
+    _destination =
+        TextEditingController(text: widget.initial.destinationQuery);
+    _dateRange = widget.initial.dateRange;
+  }
+
+  @override
+  void dispose() {
+    _destination.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.only(
+        bottom: MediaQuery.of(context).viewInsets.bottom,
+        left: 20,
+        right: 20,
+        top: 20,
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text(
+                'Filtros',
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+              ),
+              IconButton(
+                onPressed: () => Navigator.pop(context),
+                icon: const Icon(Icons.close),
+              ),
+            ],
+          ),
+          const Divider(),
+          const SizedBox(height: 16),
+          const Text(
+            'Destino',
+            style: TextStyle(fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 8),
+          TextField(
+            controller: _destination,
+            decoration: const InputDecoration(
+              hintText: 'País, cidade ou nome da viagem',
+              prefixIcon: Icon(Icons.location_on_outlined),
+              border: OutlineInputBorder(),
+            ),
+          ),
+          const SizedBox(height: 20),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text(
+                'Classificação (média dos dias)',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+              Text(
+                '${_ratingRange.start.toStringAsFixed(1)} ★ – ${_ratingRange.end.toStringAsFixed(1)} ★',
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.primary,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+          RangeSlider(
+            values: _ratingRange,
+            min: 0,
+            max: 5,
+            divisions: 50,
+            labels: RangeLabels(
+              _ratingRange.start.toStringAsFixed(1),
+              _ratingRange.end.toStringAsFixed(1),
+            ),
+            onChanged: (values) => setState(() => _ratingRange = values),
+          ),
+          const Text(
+            'Viagens sem todas as avaliações dos dias só aparecem se o mínimo for 0.',
+            style: TextStyle(fontSize: 12),
+          ),
+          const SizedBox(height: 20),
+          const Text(
+            'Intervalo de datas',
+            style: TextStyle(fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 8),
+          OutlinedButton.icon(
+            onPressed: () async {
+              final picked = await showDateRangePicker(
+                context: context,
+                firstDate: DateTime(2000),
+                lastDate: DateTime(2100),
+                initialDateRange: _dateRange,
+              );
+              if (picked != null) setState(() => _dateRange = picked);
+            },
+            icon: const Icon(Icons.calendar_month),
+            label: Text(
+              _dateRange == null
+                  ? 'Escolher datas'
+                  : '${DateFormat('dd/MM/yy').format(_dateRange!.start)} – ${DateFormat('dd/MM/yy').format(_dateRange!.end)}',
+            ),
+            style: OutlinedButton.styleFrom(
+              alignment: Alignment.centerLeft,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            ),
+          ),
+          const SizedBox(height: 32),
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton(
+                  onPressed: () {
+                    Navigator.pop(
+                      context,
+                      const _MyTripsFilterState(),
+                    );
+                  },
+                  child: const Text('Limpar'),
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: FilledButton(
+                  onPressed: () {
+                    Navigator.pop(
+                      context,
+                      _MyTripsFilterState(
+                        ratingRange: _ratingRange,
+                        destinationQuery: _destination.text,
+                        dateRange: _dateRange,
+                      ),
+                    );
+                  },
+                  child: const Text('Aplicar'),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
+        ],
+      ),
     );
   }
 }
@@ -333,6 +457,34 @@ class _TripCard extends ConsumerWidget {
                 ),
               ),
             ),
+            if (trip.averageDayRating != null)
+              Positioned(
+                top: 8,
+                right: 8,
+                child: Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: Colors.black54,
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.star, color: Colors.amber, size: 16),
+                      const SizedBox(width: 4),
+                      Text(
+                        trip.averageDayRating!.toStringAsFixed(1),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
             Padding(
               padding: const EdgeInsets.all(12.0),
               child: Column(
@@ -475,6 +627,35 @@ class _TripPreviewDialog extends ConsumerWidget {
                           overflow: TextOverflow.ellipsis,
                         ),
                         const SizedBox(height: 8),
+                        if (trip.averageDayRating != null)
+                          Padding(
+                            padding: const EdgeInsets.only(bottom: 8),
+                            child: Row(
+                              children: [
+                                const Icon(
+                                  Icons.star,
+                                  color: Colors.amber,
+                                  size: 20,
+                                ),
+                                const SizedBox(width: 6),
+                                Text(
+                                  trip.averageDayRating!.toStringAsFixed(1),
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                                const Text(
+                                  ' / 5 (média dos dias)',
+                                  style: TextStyle(
+                                    color: Colors.white70,
+                                    fontSize: 14,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
                         Row(
                           children: [
                             const Icon(

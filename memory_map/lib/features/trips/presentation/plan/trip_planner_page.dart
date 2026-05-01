@@ -585,6 +585,17 @@ class _DaysStrip extends StatelessWidget {
                       color: selected ? scheme.onPrimary : scheme.onSurfaceVariant,
                     ),
                   ),
+                  if (d.dayRating != null) ...[
+                    const SizedBox(height: 2),
+                    Text(
+                      '★ ${d.dayRating}',
+                      style: TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w600,
+                        color: selected ? scheme.onPrimary : scheme.primary,
+                      ),
+                    ),
+                  ],
                 ],
               ),
             ),
