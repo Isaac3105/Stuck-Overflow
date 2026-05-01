@@ -56,6 +56,7 @@ class Trip_Result extends StatelessWidget {
                     mainAxisAlignment: MainAxisAlignment.end,
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      const Spacer(),
                       const Text(
                         'Trip with Friends',
                         style: TextStyle(

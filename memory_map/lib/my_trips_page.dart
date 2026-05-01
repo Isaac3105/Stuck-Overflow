@@ -110,7 +110,6 @@ class MyTrips extends StatelessWidget {
                 title: const Text('Rating'),
                 onTap: () => Navigator.pop(context),
               ),
-              const SizedBox(height: 20),
             ],
           ),
         );
@@ -119,7 +118,7 @@ class MyTrips extends StatelessWidget {
   }
 
   void _showFilterSheet(BuildContext context) {
-    double ratingValue = 4.0;
+    RangeValues ratingRange = const RangeValues(0.0, 5.0);
 
     showModalBottomSheet(
       context: context,
@@ -166,23 +165,26 @@ class MyTrips extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 20),
-                  Row(
+                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text('Minimum Rating', style: TextStyle(fontWeight: FontWeight.bold)),
-                      Text('${ratingValue.toStringAsFixed(1)} ★', 
+                      const Text('Rating Range', style: TextStyle(fontWeight: FontWeight.bold)),
+                      Text('${ratingRange.start.toStringAsFixed(1)} ★ - ${ratingRange.end.toStringAsFixed(1)} ★', 
                         style: TextStyle(color: Theme.of(context).colorScheme.primary, fontWeight: FontWeight.bold)),
                     ],
                   ),
-                  Slider(
-                    value: ratingValue,
-                    min: 1.0,
+                  RangeSlider(
+                    values: ratingRange,
+                    min: 0.0,
                     max: 5.0,
-                    divisions: 4,
-                    label: ratingValue.toString(),
-                    onChanged: (value) {
+                    divisions: 5,
+                    labels: RangeLabels(
+                      ratingRange.start.toStringAsFixed(1),
+                      ratingRange.end.toStringAsFixed(1),
+                    ),
+                    onChanged: (values) {
                       setModalState(() {
-                        ratingValue = value;
+                        ratingRange = values;
                       });
                     },
                   ),
@@ -205,6 +207,10 @@ class MyTrips extends StatelessWidget {
                         child: TextButton(
                           onPressed: () => Navigator.pop(context),
                           child: const Text('Reset All'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Theme.of(context).colorScheme.primary,
+                            foregroundColor: Colors.white,
+                          ),
                         ),
                       ),
                       const SizedBox(width: 16),

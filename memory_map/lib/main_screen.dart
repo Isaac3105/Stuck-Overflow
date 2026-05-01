@@ -50,7 +50,7 @@ class _MainScreenState extends State<MainScreen> {
         items: const [
           BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
           BottomNavigationBarItem(icon: Icon(Icons.explore), label: 'Current'),
-          BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Travels'),
+          BottomNavigationBarItem(icon: Icon(Icons.airplanemode_active), label: 'Travels'),
           BottomNavigationBarItem(icon: Icon(Icons.map), label: 'Plan'),
         ],
       ),
