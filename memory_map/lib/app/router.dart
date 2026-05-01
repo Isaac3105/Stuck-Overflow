@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
-import '../features/trips/presentation/active/active_page.dart';
-import '../features/trips/presentation/archive/archive_page.dart';
-import '../features/trips/presentation/archive/trip_archive_page.dart';
+import '../features/trips/presentation/active/current_trip_page.dart';
 import '../features/trips/presentation/home/home_page.dart';
 import '../features/trips/presentation/plan/create_trip_page.dart';
 import '../features/trips/presentation/plan/plan_page.dart';
 import '../features/trips/presentation/plan/trip_planner_page.dart';
 import '../features/trips/presentation/timeline/timeline_page.dart';
+import '../my_trips_page.dart';
+import '../trip_result_page.dart';
 
 final appRouter = GoRouter(
   initialLocation: '/home',
@@ -48,7 +48,7 @@ final appRouter = GoRouter(
           routes: [
             GoRoute(
               path: '/current',
-              builder: (context, state) => const ActivePage(),
+              builder: (context, state) => const CurrentTripPage(),
             ),
           ],
         ),
@@ -56,12 +56,15 @@ final appRouter = GoRouter(
           routes: [
             GoRoute(
               path: '/archive',
-              builder: (context, state) => const ArchivePage(),
+              builder: (context, state) => const Scaffold(
+                appBar: null,
+                body: MyTrips(),
+              ),
               routes: [
                 GoRoute(
                   path: ':tripId',
                   builder: (context, state) =>
-                      TripArchivePage(tripId: state.pathParameters['tripId']!),
+                      TripResultPage(tripId: state.pathParameters['tripId']!),
                 ),
               ],
             ),
