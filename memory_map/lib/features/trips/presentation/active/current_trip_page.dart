@@ -138,14 +138,6 @@ class _CurrentTripBody extends ConsumerWidget {
                     label: const Text('Tirar foto'),
                   ),
                 ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: () => _scrollToCaptures(context),
-                    icon: const Icon(Icons.collections_outlined),
-                    label: const Text('Ver capturas'),
-                  ),
-                ),
               ],
             ),
             const SizedBox(height: 12),

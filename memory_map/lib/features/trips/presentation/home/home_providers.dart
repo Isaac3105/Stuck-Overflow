@@ -68,3 +68,17 @@ void rollNewFeatured(WidgetRef ref) {
   ref.read(_rollSeedProvider.notifier).state =
       DateTime.now().millisecondsSinceEpoch;
 }
+
+final tripFeaturedDataProvider =
+    FutureProvider.family<FeaturedTripData?, String>((ref, tripId) async {
+  final trip = await ref.watch(tripProvider(tripId).future);
+  if (trip == null) return null;
+
+  final media = await ref.watch(tripMediaProvider(tripId).future);
+  final photos = media.where((m) => m.type == MediaType.photo).toList()
+    ..sort((a, b) => a.takenAt.compareTo(b.takenAt));
+  final audios = media.where((m) => m.type == MediaType.audio).toList()
+    ..sort((a, b) => a.takenAt.compareTo(b.takenAt));
+
+  return FeaturedTripData(trip: trip, photos: photos, audios: audios);
+});
