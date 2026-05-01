@@ -13,12 +13,15 @@ import '../../domain/trip.dart';
 import '../home/home_providers.dart';
 import '../home/story_player_page.dart';
 
+final _tripSearchProvider = StateProvider.autoDispose<String>((ref) => '');
+
 class MyTrips extends ConsumerWidget {
   const MyTrips({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final tripsAsync = ref.watch(allTripsProvider);
+    final search = ref.watch(_tripSearchProvider);
 
     return tripsAsync.when(
       loading: () => const Center(child: CircularProgressIndicator()),
@@ -27,6 +30,9 @@ class MyTrips extends ConsumerWidget {
         final now = DateTime.now();
         final completed = trips
             .where((t) => t.resolvedStatus(now) == TripStatus.completed)
+            .where((t) =>
+                search.isEmpty ||
+                t.name.toLowerCase().contains(search.toLowerCase()))
             .toList(growable: false);
 
         return SafeArea(
@@ -44,7 +50,9 @@ class MyTrips extends ConsumerWidget {
                         padding: const WidgetStatePropertyAll(
                           EdgeInsets.symmetric(horizontal: 16),
                         ),
-                        onChanged: (value) {},
+                        onChanged: (value) {
+                          ref.read(_tripSearchProvider.notifier).state = value;
+                        },
                       ),
                     ),
                     const SizedBox(width: 8),
@@ -64,7 +72,10 @@ class MyTrips extends ConsumerWidget {
               ),
               Expanded(
                 child: completed.isEmpty
-                    ? const Center(child: Text('Sem viagens concluídas.'))
+                    ? Center(
+                        child: Text(search.isEmpty
+                            ? 'Sem viagens concluídas.'
+                            : 'Nenhuma viagem encontrada para "$search".'))
                     : GridView.builder(
                         padding: const EdgeInsets.symmetric(horizontal: 16),
                         physics: const ClampingScrollPhysics(),
