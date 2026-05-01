@@ -56,8 +56,8 @@ class _PreviewPlayerState extends State<PreviewPlayer> {
         child: Row(
           children: [
             IconButton.filled(
-              onPressed: !_ready
-                  ? null
+                  onPressed: !_ready
+                      ? null
                   : () => _player.playing ? _player.pause() : _player.play(),
               icon: Icon(_player.playing ? Icons.pause : Icons.play_arrow),
             ),

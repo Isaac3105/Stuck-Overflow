@@ -1,4 +1,5 @@
 // ignore_for_file: deprecated_member_use, sort_child_properties_last
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -9,6 +10,8 @@ import 'package:intl/intl.dart';
 import '../../data/trip_providers.dart';
 import '../../domain/media.dart';
 import '../../domain/trip.dart';
+import '../home/home_providers.dart';
+import '../home/story_player_page.dart';
 
 class MyTrips extends ConsumerWidget {
   const MyTrips({super.key});
@@ -394,7 +397,7 @@ class _TripPreviewDialog extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final coverPath = ref.watch(_coverImagePathProvider(trip));
+    final featuredAsync = ref.watch(tripFeaturedDataProvider(trip.id));
     final range =
         '${DateFormat('d MMM yyyy', 'pt_PT').format(trip.startDate)} → ${DateFormat('d MMM yyyy', 'pt_PT').format(trip.endDate)}';
     final place = [
@@ -414,12 +417,16 @@ class _TripPreviewDialog extends ConsumerWidget {
           child: Stack(
             fit: StackFit.expand,
             children: [
-              if (coverPath != null)
-                Image.file(File(coverPath), fit: BoxFit.cover)
-              else
-                Container(
-                  color: Theme.of(context).colorScheme.surfaceContainerHigh,
-                ),
+              featuredAsync.when(
+                loading: () => Container(color: Colors.black12),
+                error: (e, _) => Container(color: Colors.black12),
+                data: (data) {
+                  if (data == null || data.photos.isEmpty) {
+                    return Container(color: Colors.black12);
+                  }
+                  return _TripBackgroundSlideshow(photos: data.photos);
+                },
+              ),
               Container(
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
@@ -516,14 +523,46 @@ class _TripPreviewDialog extends ConsumerWidget {
                           ],
                         ),
                         const SizedBox(height: 32),
-                        ElevatedButton(
+                        featuredAsync.when(
+                          data: (data) => data == null || data.photos.isEmpty
+                              ? const SizedBox.shrink()
+                              : Padding(
+                                  padding: const EdgeInsets.only(bottom: 12),
+                                  child: ElevatedButton.icon(
+                                    onPressed: () {
+                                      Navigator.pop(context);
+                                      Navigator.of(context).push(
+                                        MaterialPageRoute(
+                                          builder: (_) =>
+                                              StoryPlayerPage(featured: data),
+                                        ),
+                                      );
+                                    },
+                                    icon: const Icon(Icons.play_circle_fill),
+                                    label: const Text('WATCH STORY'),
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: Colors.white,
+                                      foregroundColor: Theme.of(context)
+                                          .colorScheme
+                                          .primary,
+                                      padding: const EdgeInsets.symmetric(
+                                          vertical: 16),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                          loading: () => const SizedBox.shrink(),
+                          error: (e, _) => const SizedBox.shrink(),
+                        ),
+                        OutlinedButton(
                           onPressed: () {
                             Navigator.pop(context);
                             context.push('/archive/${trip.id}');
                           },
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor:
-                                Theme.of(context).colorScheme.primary,
+                          style: OutlinedButton.styleFrom(
+                            side: const BorderSide(color: Colors.white70),
                             foregroundColor: Colors.white,
                             padding: const EdgeInsets.symmetric(vertical: 16),
                             shape: RoundedRectangleBorder(
@@ -569,4 +608,50 @@ final _coverImagePathProvider =
     orElse: () => null,
   );
 });
+
+class _TripBackgroundSlideshow extends StatefulWidget {
+  const _TripBackgroundSlideshow({required this.photos});
+  final List<MediaItem> photos;
+
+  @override
+  State<_TripBackgroundSlideshow> createState() =>
+      _TripBackgroundSlideshowState();
+}
+
+class _TripBackgroundSlideshowState extends State<_TripBackgroundSlideshow> {
+  int _index = 0;
+  late final Timer _timer;
+
+  @override
+  void initState() {
+    super.initState();
+    _timer = Timer.periodic(const Duration(seconds: 3), (timer) {
+      if (mounted && widget.photos.isNotEmpty) {
+        setState(() {
+          _index = (_index + 1) % widget.photos.length;
+        });
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedSwitcher(
+      duration: const Duration(milliseconds: 800),
+      child: Image.file(
+        key: ValueKey(widget.photos[_index].id),
+        File(widget.photos[_index].filePath),
+        fit: BoxFit.cover,
+        width: double.infinity,
+        height: double.infinity,
+      ),
+    );
+  }
+}
 
