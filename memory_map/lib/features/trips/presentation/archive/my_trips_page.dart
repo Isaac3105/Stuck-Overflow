@@ -457,34 +457,6 @@ class _TripCard extends ConsumerWidget {
                 ),
               ),
             ),
-            if (trip.averageDayRating != null)
-              Positioned(
-                top: 8,
-                right: 8,
-                child: Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: Colors.black54,
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Icon(Icons.star, color: Colors.amber, size: 16),
-                      const SizedBox(width: 4),
-                      Text(
-                        trip.averageDayRating!.toStringAsFixed(1),
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 12,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
             Padding(
               padding: const EdgeInsets.all(12.0),
               child: Column(
@@ -530,6 +502,46 @@ class _TripCard extends ConsumerWidget {
                         ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 6),
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.star_rounded,
+                            color: trip.averageDayRating != null
+                                ? Colors.amber
+                                : Colors.white38,
+                            size: 16,
+                          ),
+                          const SizedBox(width: 4),
+                          Expanded(
+                            child: Text(
+                              trip.averageDayRating != null
+                                  ? '${NumberFormat('#0.0', 'pt_PT').format(trip.averageDayRating)} / 5'
+                                  : 'Sem classificação',
+                              style: TextStyle(
+                                color: trip.averageDayRating != null
+                                    ? Colors.white
+                                    : Colors.white70,
+                                fontSize: 12,
+                                fontWeight: trip.averageDayRating != null
+                                    ? FontWeight.w700
+                                    : FontWeight.w400,
+                                shadows: trip.averageDayRating != null
+                                    ? const [
+                                        Shadow(
+                                          color: Colors.black45,
+                                          blurRadius: 3,
+                                          offset: Offset(1, 1),
+                                        ),
+                                      ]
+                                    : null,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
                       ),
                     ],
                   ),
