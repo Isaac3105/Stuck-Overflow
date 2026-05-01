@@ -4,6 +4,7 @@ import 'package:flag/flag.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
+import '../../../../core/data/countries.dart';
 import '../../domain/trip.dart';
 
 class TripCard extends StatelessWidget {
@@ -20,102 +21,119 @@ class TripCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final df = DateFormat('d MMM', 'pt_PT');
-    final period = '${df.format(trip.startDate)} – ${df.format(trip.endDate)}';
+    final range =
+        '${DateFormat('dd/MM/yy', 'en').format(trip.startDate)} - ${DateFormat('dd/MM/yy', 'en').format(trip.endDate)}';
+    
+    final locationParts = <String>[];
+    if (trip.countries.isNotEmpty) {
+      locationParts.add(countryNameEn(trip.countries.first));
+    }
+    if (trip.cities.isNotEmpty) {
+      locationParts.add(trip.cities.first);
+    }
+    final subtitle = locationParts.join(', ');
 
     return Card(
       clipBehavior: Clip.antiAlias,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: InkWell(
         onTap: onTap,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
+        child: Stack(
+          fit: StackFit.expand,
           children: [
-            AspectRatio(
-              aspectRatio: 16 / 10,
-              child: _CardCover(
-                trip: trip,
-                coverImagePath: coverImagePath,
+            if (coverImagePath != null)
+              Image.file(File(coverImagePath!), fit: BoxFit.cover)
+            else
+              Container(
+                color: Theme.of(context).colorScheme.surfaceContainerHigh,
+                child: const Center(child: Icon(Icons.image_outlined, size: 36)),
+              ),
+            Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    Colors.black.withOpacity(0.35),
+                    Colors.transparent,
+                    Colors.black.withOpacity(0.85),
+                  ],
+                  stops: const [0.0, 0.55, 1.0],
+                ),
+              ),
+            ),
+            Positioned(
+              left: 12,
+              top: 12,
+              child: Wrap(
+                spacing: 4,
+                children: trip.countries
+                    .take(4)
+                    .map(
+                      (c) => ClipRRect(
+                        borderRadius: BorderRadius.circular(3),
+                        child: SizedBox(
+                          width: 24,
+                          height: 16,
+                          child: Flag.fromString(c, fit: BoxFit.cover),
+                        ),
+                      ),
+                    )
+                    .toList(),
               ),
             ),
             Padding(
-              padding: const EdgeInsets.all(12),
+              padding: const EdgeInsets.all(12.0),
               child: Column(
+                mainAxisAlignment: MainAxisAlignment.end,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
                     trip.name,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 18,
+                      shadows: [
+                        Shadow(
+                          color: Colors.black45,
+                          blurRadius: 4,
+                          offset: Offset(2, 2),
+                        ),
+                      ],
+                    ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: Theme.of(context).textTheme.titleMedium,
                   ),
-                  const SizedBox(height: 4),
-                  Text(
-                    period,
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color:
-                              Theme.of(context).colorScheme.onSurfaceVariant,
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        subtitle,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 13,
                         ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        range,
+                        style: const TextStyle(
+                          color: Colors.white70,
+                          fontSize: 10,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
                   ),
                 ],
               ),
             ),
           ],
-        ),
-      ),
-    );
-  }
-}
-
-class _CardCover extends StatelessWidget {
-  const _CardCover({required this.trip, this.coverImagePath});
-  final Trip trip;
-  final String? coverImagePath;
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    return Stack(
-      fit: StackFit.expand,
-      children: [
-        if (coverImagePath != null)
-          Image.file(
-            File(coverImagePath!),
-            fit: BoxFit.cover,
-            errorBuilder: (ctx, err, stack) => _gradient(scheme),
-          )
-        else
-          _gradient(scheme),
-        Positioned(
-          left: 12,
-          top: 12,
-          child: Wrap(
-            spacing: 4,
-            children: trip.countries
-                .take(4)
-                .map(
-                  (c) => ClipRRect(
-                    borderRadius: BorderRadius.circular(3),
-                    child: SizedBox(
-                      width: 24,
-                      height: 16,
-                      child: Flag.fromString(c, fit: BoxFit.cover),
-                    ),
-                  ),
-                )
-                .toList(),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _gradient(ColorScheme scheme) {
-    return Container(
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [scheme.primaryContainer, scheme.tertiaryContainer],
         ),
       ),
     );

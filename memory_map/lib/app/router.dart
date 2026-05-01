@@ -57,7 +57,7 @@ final appRouter = GoRouter(
             GoRoute(
               path: '/archive',
               builder: (context, state) => Scaffold(
-                appBar: AppBar(title: const Text('Minhas viagens')),
+                appBar: AppBar(title: const Text('My Trips')),
                 body: const MyTrips(),
               ),
               routes: [
@@ -104,22 +104,22 @@ class _RootShell extends StatelessWidget {
           NavigationDestination(
             icon: Icon(Icons.map_outlined),
             selectedIcon: Icon(Icons.map_rounded),
-            label: 'Planear',
+            label: 'Plan',
           ),
           NavigationDestination(
             icon: Icon(Icons.flight_takeoff_outlined),
             selectedIcon: Icon(Icons.flight_takeoff_rounded),
-            label: 'Atual',
+            label: 'Current',
           ),
           NavigationDestination(
             icon: Icon(Icons.luggage_outlined),
             selectedIcon: Icon(Icons.luggage_rounded),
-            label: 'Viagens',
+            label: 'My Trips',
           ),
           NavigationDestination(
             icon: Icon(Icons.auto_stories_outlined),
             selectedIcon: Icon(Icons.auto_stories_rounded),
-            label: 'Memórias',
+            label: 'Memories',
           ),
         ],
       ),

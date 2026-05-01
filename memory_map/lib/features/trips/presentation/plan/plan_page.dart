@@ -16,16 +16,11 @@ class PlanPage extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Planear'),
-      ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => context.push('/plan/new'),
-        icon: const Icon(Icons.add),
-        label: const Text('Nova viagem'),
+        title: const Text('Plan'),
       ),
       body: tripsAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(child: Text('Erro: $e')),
+        error: (e, _) => Center(child: Text('Error: $e')),
         data: (trips) {
           final now = DateTime.now();
           final upcoming = trips
@@ -34,32 +29,45 @@ class PlanPage extends ConsumerWidget {
           if (upcoming.isEmpty) {
             return EmptyState(
               icon: Icons.map_outlined,
-              title: 'Sem viagens planeadas',
+              title: 'No trips planned',
               message:
-                  'Adiciona a tua primeira viagem para começar a construir o itinerário.',
+                  'Add your first trip to start building the itinerary.',
               action: FilledButton.icon(
                 onPressed: () => context.push('/plan/new'),
                 icon: const Icon(Icons.add),
-                label: const Text('Criar viagem'),
+                label: const Text('Create trip'),
               ),
             );
           }
-          return GridView.builder(
-            padding: const EdgeInsets.fromLTRB(12, 12, 12, 96),
-            gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-              maxCrossAxisExtent: 240,
-              mainAxisExtent: 220,
-              crossAxisSpacing: 12,
-              mainAxisSpacing: 12,
-            ),
-            itemCount: upcoming.length,
-            itemBuilder: (_, i) {
-              final t = upcoming[i];
-              return TripCard(
-                trip: t,
-                onTap: () => context.push('/plan/${t.id}'),
-              );
-            },
+          return Stack(
+            children: [
+              GridView.builder(
+                padding: const EdgeInsets.fromLTRB(12, 12, 12, 96),
+                gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+                  maxCrossAxisExtent: 240,
+                  mainAxisExtent: 220,
+                  crossAxisSpacing: 12,
+                  mainAxisSpacing: 12,
+                ),
+                itemCount: upcoming.length,
+                itemBuilder: (_, i) {
+                  final t = upcoming[i];
+                  return TripCard(
+                    trip: t,
+                    onTap: () => context.push('/plan/${t.id}'),
+                  );
+                },
+              ),
+              Positioned(
+                right: 16,
+                bottom: 16,
+                child: FloatingActionButton.extended(
+                  onPressed: () => context.push('/plan/new'),
+                  icon: const Icon(Icons.add),
+                  label: const Text('New Trip'),
+                ),
+              ),
+            ],
           );
         },
       ),

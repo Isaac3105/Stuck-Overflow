@@ -14,10 +14,10 @@ class ArchivePage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final tripsAsync = ref.watch(allTripsProvider);
     return Scaffold(
-      appBar: AppBar(title: const Text('Minhas viagens')),
+      appBar: AppBar(title: const Text('My Trips')),
       body: tripsAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(child: Text('Erro: $e')),
+        error: (e, _) => Center(child: Text('Error: $e')),
         data: (trips) {
           final now = DateTime.now();
           final completed = trips
@@ -26,8 +26,8 @@ class ArchivePage extends ConsumerWidget {
           if (completed.isEmpty) {
             return const EmptyState(
               icon: Icons.luggage_outlined,
-              title: 'Sem viagens concluídas',
-              message: 'As viagens cujo período passou aparecem aqui.',
+              title: 'No completed trips',
+              message: 'Trips whose period has passed will appear here.',
             );
           }
           return _ArchiveGrid(trips: completed);
