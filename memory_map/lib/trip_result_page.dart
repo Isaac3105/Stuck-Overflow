@@ -142,10 +142,6 @@ class Trip_Result extends StatelessWidget {
           const SizedBox(height: 16),
 
           // Itinerary Section
-          const Text(
-            'Itinerary',
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-          ),
           const Divider(height: 12),
           _buildItineraryItem(Icons.location_on, 'Eiffel Tower', '9:30 AM'),
           const SizedBox(height: 8),
@@ -153,6 +149,7 @@ class Trip_Result extends StatelessWidget {
           const SizedBox(height: 8),
           _buildItineraryItem(Icons.location_on, 'Seine Cruise', '4:30 PM'),
           
+          const Divider(height: 12),
           const SizedBox(height: 16),
 
           // Weather Summary
