@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'current_trip_page.dart';
 import 'my_trips_page.dart';
-import 'profile_page.dart';
 
 class MainScreen extends StatefulWidget {
   const MainScreen({super.key});

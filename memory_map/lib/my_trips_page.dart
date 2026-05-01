@@ -1,6 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'profile_page.dart';
+import 'trip_result_page.dart';
 
 class MyTrips extends StatelessWidget {
   const MyTrips({super.key});
@@ -569,7 +569,7 @@ class _TripPreviewDialogState extends State<_TripPreviewDialog> {
                           onPressed: () {
                             Navigator.pop(context); // Close dialog
                             Navigator.of(context).push(
-                              MaterialPageRoute(builder: (context) => const ProfilePage())
+                              MaterialPageRoute(builder: (context) => const Trip_Result())
                             );
                           },
                           style: ElevatedButton.styleFrom(

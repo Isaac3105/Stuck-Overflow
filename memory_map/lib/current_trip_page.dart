@@ -60,7 +60,7 @@ class CurrentTrip extends StatelessWidget {
                         fontWeight: FontWeight.w600,
                       ),
                     ),
-                    const SizedBox(height: 70),
+                    const Spacer(),
                     const Text(
                       'France, Paris',
                       style: TextStyle(

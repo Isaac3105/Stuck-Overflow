@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-class ProfilePage extends StatelessWidget {
-  const ProfilePage({super.key});
+class Trip_Result extends StatelessWidget {
+  const Trip_Result ({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -73,6 +73,7 @@ class ProfilePage extends StatelessWidget {
                           fontWeight: FontWeight.w600,
                         ),
                       ),
+                      const Spacer(),
                       const SizedBox(height: 8),
                       const Text(
                         'France, Paris',
