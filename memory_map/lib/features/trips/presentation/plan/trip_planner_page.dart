@@ -6,6 +6,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../../../core/config/env.dart';
 import '../../../../core/services/gemini_service.dart';
+import '../../../../core/services/spotify_service.dart';
 import '../../data/trip_providers.dart';
 import '../../domain/day.dart';
 import '../../../music/data/spotify_repository.dart';
@@ -184,9 +185,6 @@ class _SpotifySuggestions extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final repo = ref.watch(spotifyRepositoryProvider);
-    final loading = ref.watch(_spotifySuggestLoadingProvider(tripId));
-    final messenger = ScaffoldMessenger.of(context);
     final selectedAsync = ref.watch(_selectedPlaylistProvider(tripId));
 
     return Padding(
@@ -221,78 +219,17 @@ class _SpotifySuggestions extends ConsumerWidget {
                       icon: const Icon(Icons.open_in_new),
                     ),
                   TextButton(
-                    onPressed: loading
-                        ? null
-                        : () async {
-                            ref
-                                .read(_spotifySuggestLoadingProvider(tripId)
-                                    .notifier)
-                                .state = true;
-                            try {
-                              final options = await repo.suggestPlaylists(
-                                countryCode: country,
-                                limit: 3,
-                              );
-                              if (!context.mounted) return;
-                              if (options.isEmpty) {
-                                messenger.showSnackBar(
-                                  const SnackBar(
-                                    content: Text('Sem playlists encontradas.'),
-                                  ),
-                                );
-                                return;
-                              }
-                              final chosen = await showDialog<int>(
-                                context: context,
-                                builder: (ctx) => AlertDialog(
-                                  title: const Text('Escolher playlist'),
-                                  content: Column(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      for (var i = 0; i < options.length; i++)
-                                        ListTile(
-                                          title: Text(options[i].name),
-                                          trailing:
-                                              const Icon(Icons.open_in_new),
-                                          onTap: () =>
-                                              Navigator.of(ctx).pop(i),
-                                        ),
-                                    ],
-                                  ),
-                                  actions: [
-                                    TextButton(
-                                      onPressed: () =>
-                                          Navigator.of(ctx).pop(null),
-                                      child: const Text('Cancelar'),
-                                    ),
-                                  ],
-                                ),
-                              );
-                              if (chosen == null) return;
-                              await repo.selectPlaylistForTrip(
-                                tripId: tripId,
-                                countryCode: country,
-                                playlist: options[chosen],
-                              );
-                              messenger.showSnackBar(
-                                const SnackBar(
-                                  content: Text('Playlist escolhida.'),
-                                ),
-                              );
-                            } catch (e) {
-                              messenger.showSnackBar(
-                                SnackBar(
-                                  content: Text('Erro Spotify: $e'),
-                                ),
-                              );
-                            } finally {
-                              ref
-                                  .read(_spotifySuggestLoadingProvider(tripId)
-                                      .notifier)
-                                  .state = false;
-                            }
-                          },
-                    child: Text(loading ? 'A buscar…' : 'Sugerir'),
+                    onPressed: () async {
+                      await showModalBottomSheet<void>(
+                        context: context,
+                        isScrollControlled: true,
+                        builder: (_) => _SpotifyPlaylistPickerSheet(
+                          tripId: tripId,
+                          countryCode: country,
+                        ),
+                      );
+                    },
+                    child: const Text('Escolher'),
                   ),
                 ],
               ),
@@ -336,6 +273,139 @@ class _SpotifySuggestions extends ConsumerWidget {
   }
 }
 
+class _SpotifyPlaylistPickerSheet extends ConsumerWidget {
+  const _SpotifyPlaylistPickerSheet({
+    required this.tripId,
+    required this.countryCode,
+  });
+
+  final String tripId;
+  final String countryCode;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final repo = ref.watch(spotifyRepositoryProvider);
+    final messenger = ScaffoldMessenger.of(context);
+    final async = ref.watch(
+      _spotifySuggestionsProvider((tripId: tripId, countryCode: countryCode)),
+    );
+
+    return SafeArea(
+      top: false,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    'Escolher playlist',
+                    style: Theme.of(context).textTheme.titleLarge,
+                  ),
+                ),
+                TextButton(
+                  onPressed: () => ref.invalidate(
+                    _spotifySuggestionsProvider(
+                      (tripId: tripId, countryCode: countryCode),
+                    ),
+                  ),
+                  child: const Text('Atualizar'),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            async.when(
+              loading: () => const Padding(
+                padding: EdgeInsets.symmetric(vertical: 16),
+                child: Center(child: CircularProgressIndicator.adaptive()),
+              ),
+              error: (e, _) => Padding(
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                child: Text('Erro Spotify: $e'),
+              ),
+              data: (options) {
+                if (options.isEmpty) {
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    child: Text(
+                      'Sem sugestões. Tenta “Atualizar”.',
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
+                  );
+                }
+
+                return Flexible(
+                  child: ListView.separated(
+                    shrinkWrap: true,
+                    itemCount: options.length,
+                    separatorBuilder: (_, _) => const SizedBox(height: 8),
+                    itemBuilder: (_, i) {
+                      final p = options[i];
+                      return Card(
+                        child: ListTile(
+                          title: Text(
+                            p.name,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          leading: const Icon(Icons.queue_music),
+                          trailing: Wrap(
+                            spacing: 8,
+                            children: [
+                              IconButton(
+                                tooltip: 'Abrir no Spotify',
+                                onPressed: () => launchUrl(
+                                  Uri.parse(p.deepLink),
+                                  mode: LaunchMode.externalApplication,
+                                ),
+                                icon: const Icon(Icons.open_in_new),
+                              ),
+                              FilledButton(
+                                onPressed: () async {
+                                  try {
+                                    await repo.selectPlaylistForTrip(
+                                      tripId: tripId,
+                                      countryCode: countryCode,
+                                      playlist: p,
+                                    );
+                                    messenger.showSnackBar(
+                                      const SnackBar(
+                                        content: Text('Playlist escolhida.'),
+                                      ),
+                                    );
+                                    if (context.mounted) {
+                                      Navigator.of(context).pop();
+                                    }
+                                  } catch (e) {
+                                    messenger.showSnackBar(
+                                      SnackBar(
+                                        content: Text('Erro Spotify: $e'),
+                                      ),
+                                    );
+                                  }
+                                },
+                                child: const Text('Escolher'),
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                );
+              },
+            ),
+            const SizedBox(height: 8),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 final _selectedPlaylistProvider =
     StreamProvider.autoDispose.family((ref, String tripId) {
   return ref
@@ -343,8 +413,13 @@ final _selectedPlaylistProvider =
       .watchSelectedPlaylistForTrip(tripId);
 });
 
-final _spotifySuggestLoadingProvider =
-    StateProvider.autoDispose.family<bool, String>((ref, tripId) => false);
+final _spotifySuggestionsProvider = FutureProvider.autoDispose.family
+    <List<SpotifyPlaylist>, ({String tripId, String countryCode})>((ref, args) {
+  return ref.watch(spotifyRepositoryProvider).suggestPlaylists(
+        countryCode: args.countryCode,
+        limit: 3,
+      );
+});
 
 class _GeminiSuggestions extends ConsumerWidget {
   const _GeminiSuggestions({
