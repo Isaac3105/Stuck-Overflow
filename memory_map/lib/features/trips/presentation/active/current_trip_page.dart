@@ -12,6 +12,7 @@ import '../../../media/audio_recorder_button.dart';
 import '../../../media/photo_thumbnail.dart';
 import '../../../music/data/spotify_repository.dart';
 import '../../data/trip_providers.dart';
+import '../../domain/day.dart';
 import '../../domain/media.dart';
 import '../../domain/trip.dart';
 import '../widgets/empty_state.dart';
@@ -127,7 +128,7 @@ class _CurrentTripBody extends ConsumerWidget {
         return ListView(
           padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
           children: [
-            _HeaderCard(trip: trip, dateLabel: dateLabel, dayId: day.id),
+            _HeaderCard(trip: trip, dateLabel: dateLabel, day: day),
             const SizedBox(height: 10),
             Row(
               children: [
@@ -333,32 +334,38 @@ class _CurrentTripBody extends ConsumerWidget {
       },
     );
   }
-
-  void _scrollToCaptures(BuildContext context) {
-    // Keeping it simple: the captures section is already on this page.
-    // If you want true scroll-to-anchor, we can convert to ScrollController + GlobalKey.
-  }
 }
 
 class _HeaderCard extends ConsumerWidget {
   const _HeaderCard({
     required this.trip,
     required this.dateLabel,
-    required this.dayId,
+    required this.day,
   });
 
   final Trip trip;
   final String dateLabel;
-  final String dayId;
+  final TripDay day;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final mediaAsync = ref.watch(dayMediaProvider(dayId));
+    final mediaAsync = ref.watch(dayMediaProvider(day.id));
     final cover = mediaAsync.maybeWhen(
-      data: (media) => media.where((m) => m.type == MediaType.photo).cast<MediaItem?>().firstWhere(
-            (_) => true,
-            orElse: () => null,
-          ),
+      data: (media) {
+        if (day.coverMediaId != null) {
+          final found = media
+              .where((m) => m.id == day.coverMediaId)
+              .firstOrNull;
+          if (found != null) return found;
+        }
+        return media
+            .where((m) => m.type == MediaType.photo)
+            .cast<MediaItem?>()
+            .firstWhere(
+              (_) => true,
+              orElse: () => null,
+            );
+      },
       orElse: () => null,
     );
 
@@ -495,7 +502,11 @@ class _CapturesSection extends StatelessWidget {
                       filePath: photos[i].filePath,
                       onTap: () => Navigator.of(context).push(
                         MaterialPageRoute(
-                          builder: (_) => PhotoViewerPage(filePath: photos[i].filePath),
+                          builder: (_) => PhotoViewerPage(
+                            filePath: photos[i].filePath,
+                            dayId: dayId,
+                            mediaId: photos[i].id,
+                          ),
                         ),
                       ),
                     ),
@@ -521,15 +532,16 @@ class _CapturesSection extends StatelessWidget {
   }
 }
 
-final _todayTripDayProvider = FutureProvider.autoDispose.family((ref, String tripId) async {
-  final days = await ref.watch(tripRepositoryProvider).getDays(tripId);
-  final today = DateTime.now();
-  final todayKey = DateTime(today.year, today.month, today.day);
-  for (final d in days) {
-    final key = DateTime(d.date.year, d.date.month, d.date.day);
-    if (key == todayKey) return d;
-  }
-  return null;
+final _todayTripDayProvider = StreamProvider.autoDispose.family((ref, String tripId) {
+  return ref.watch(tripRepositoryProvider).watchDays(tripId).map((days) {
+    final today = DateTime.now();
+    final todayKey = DateTime(today.year, today.month, today.day);
+    for (final d in days) {
+      final key = DateTime(d.date.year, d.date.month, d.date.day);
+      if (key == todayKey) return d;
+    }
+    return null;
+  });
 });
 
 final _selectedPlaylistProviderForTrip =

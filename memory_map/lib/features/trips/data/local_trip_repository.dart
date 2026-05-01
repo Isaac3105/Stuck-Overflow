@@ -34,6 +34,7 @@ class LocalTripRepository implements TripRepository {
         date: DateTime.fromMillisecondsSinceEpoch(r.date),
         journalNote: r.journalNote,
         audioJournalMediaId: r.audioJournalMediaId,
+        coverMediaId: r.coverMediaId,
       );
 
   ActivityBlock _toBlock(ActivityBlockRow r) => ActivityBlock(
@@ -172,6 +173,12 @@ class LocalTripRepository implements TripRepository {
       ..where((d) => d.tripId.equals(tripId))
       ..orderBy([(d) => OrderingTerm(expression: d.date)]);
     return q.watch().map((rows) => rows.map(_toDay).toList());
+  }
+
+  @override
+  Stream<TripDay?> watchDaysByDayId(String dayId) {
+    final q = db.select(db.days)..where((d) => d.id.equals(dayId));
+    return q.watchSingleOrNull().map((r) => r == null ? null : _toDay(r));
   }
 
   @override
@@ -327,6 +334,12 @@ class LocalTripRepository implements TripRepository {
   Future<void> setDayAudio(String dayId, String mediaId) async {
     await (db.update(db.days)..where((d) => d.id.equals(dayId)))
         .write(DaysCompanion(audioJournalMediaId: Value(mediaId)));
+  }
+
+  @override
+  Future<void> setDayCover(String dayId, String? mediaId) async {
+    await (db.update(db.days)..where((d) => d.id.equals(dayId)))
+        .write(DaysCompanion(coverMediaId: Value(mediaId)));
   }
 
   @override

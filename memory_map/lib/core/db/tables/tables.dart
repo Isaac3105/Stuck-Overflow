@@ -24,6 +24,7 @@ class Days extends Table {
   IntColumn get date => integer()();
   TextColumn get journalNote => text().nullable()();
   TextColumn get audioJournalMediaId => text().nullable()();
+  TextColumn get coverMediaId => text().nullable()();
 
   @override
   Set<Column> get primaryKey => {id};

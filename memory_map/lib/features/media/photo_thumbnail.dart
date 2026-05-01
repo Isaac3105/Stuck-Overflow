@@ -1,6 +1,8 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../trips/data/trip_providers.dart';
 
 class PhotoThumbnail extends StatelessWidget {
   const PhotoThumbnail({
@@ -36,17 +38,63 @@ class PhotoThumbnail extends StatelessWidget {
   }
 }
 
-class PhotoViewerPage extends StatelessWidget {
-  const PhotoViewerPage({super.key, required this.filePath});
+class PhotoViewerPage extends ConsumerWidget {
+  const PhotoViewerPage({
+    super.key,
+    required this.filePath,
+    this.dayId,
+    this.mediaId,
+  });
+
   final String filePath;
+  final String? dayId;
+  final String? mediaId;
+
+  Future<void> _setAsDayCover(BuildContext context, WidgetRef ref) async {
+    if (dayId == null || mediaId == null) return;
+
+    final currentDay = await ref.read(dayProvider(dayId!).future);
+    final isAlreadyCover = currentDay?.coverMediaId == mediaId;
+
+    await ref.read(tripRepositoryProvider).setDayCover(
+          dayId!,
+          isAlreadyCover ? null : mediaId,
+        );
+
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(isAlreadyCover
+              ? 'Imagem de destaque removida.'
+              : 'Definida como imagem de destaque do dia.'),
+        ),
+      );
+    }
+  }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final dayAsync = dayId == null ? null : ref.watch(dayProvider(dayId!));
+    final isCover = dayAsync?.maybeWhen(
+          data: (day) => day?.coverMediaId == mediaId,
+          orElse: () => false,
+        ) ??
+        false;
+
     return Scaffold(
       backgroundColor: Colors.black,
       appBar: AppBar(
         backgroundColor: Colors.black,
         foregroundColor: Colors.white,
+        actions: [
+          if (dayId != null && mediaId != null)
+            IconButton(
+              icon: Icon(isCover ? Icons.star : Icons.star_border_outlined),
+              color: isCover ? Colors.amber : null,
+              tooltip: isCover ? 'Imagem de destaque' : 'Definir como capa do dia',
+              onPressed: () => _setAsDayCover(context, ref),
+            ),
+        ],
       ),
       body: Center(
         child: InteractiveViewer(

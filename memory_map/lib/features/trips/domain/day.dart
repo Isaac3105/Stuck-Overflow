@@ -8,6 +8,7 @@ class TripDay {
     required this.date,
     this.journalNote,
     this.audioJournalMediaId,
+    this.coverMediaId,
   });
 
   final String id;
@@ -15,11 +16,14 @@ class TripDay {
   final DateTime date;
   final String? journalNote;
   final String? audioJournalMediaId;
+  final String? coverMediaId;
 
   TripDay copyWith({
     String? journalNote,
     String? audioJournalMediaId,
+    String? coverMediaId,
     bool clearAudioJournal = false,
+    bool clearCoverMedia = false,
   }) {
     return TripDay(
       id: id,
@@ -29,6 +33,9 @@ class TripDay {
       audioJournalMediaId: clearAudioJournal
           ? null
           : (audioJournalMediaId ?? this.audioJournalMediaId),
+      coverMediaId: clearCoverMedia
+          ? null
+          : (coverMediaId ?? this.coverMediaId),
     );
   }
 }
