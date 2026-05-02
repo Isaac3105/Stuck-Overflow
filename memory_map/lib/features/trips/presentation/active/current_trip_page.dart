@@ -154,7 +154,6 @@ class _CurrentTripBodyState extends ConsumerState<_CurrentTripBody> {
           body: ListView(
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
             children: [
-              WeatherCard(countries: widget.trip.countries),
               const SizedBox(height: 12),
               _HeaderCard(trip: widget.trip, dateLabel: dateLabel, day: day),
             const SizedBox(height: 16),
@@ -163,6 +162,10 @@ class _CurrentTripBodyState extends ConsumerState<_CurrentTripBody> {
               selectedIndex: resolvedIndex.clamp(0, days.length - 1),
               onSelect: (i) => setState(() => _selectedDayIndex = i),
             ),
+            const SizedBox(height: 10),
+            WeatherCard(countries: widget.trip.countries),
+            const SizedBox(height: 12),
+
 
 
             const SizedBox(height: 12),

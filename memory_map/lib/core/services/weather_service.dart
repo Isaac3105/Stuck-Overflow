@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../data/geography.dart';
 
 class WeatherSnapshot {
   const WeatherSnapshot({
@@ -144,11 +145,19 @@ const _capitalCoords = <String, _Coords>{
   'MZ': _Coords(-25.9655, 32.5832),
 };
 
-/// Resolves a representative coordinate from a list of country codes.
+/// Resolves a representative coordinate from a list of country codes or names.
 ({double lat, double lng})? coordsForCountries(List<String> countries) {
   for (final c in countries) {
-    final m = _capitalCoords[c];
+    // Try as code first
+    var m = _capitalCoords[c.toUpperCase()];
     if (m != null) return (lat: m.lat, lng: m.lng);
+
+    // Try resolving if it's a name
+    final geo = resolveGeography(c);
+    if (geo != null) {
+      m = _capitalCoords[geo.code.toUpperCase()];
+      if (m != null) return (lat: m.lat, lng: m.lng);
+    }
   }
   return null;
 }

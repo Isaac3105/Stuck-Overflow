@@ -36,8 +36,9 @@ class GeminiService {
   }) async {
     if (!Env.hasGemini) return const [];
     
+    final location = city.isNotEmpty ? '$city, $country' : country;
     final prompt = '''
-Return ONLY a valid JSON array (no markdown, no extra text) with $count cultural and typical suggestions to visit/eat/do in $city, $country.
+Return ONLY a valid JSON array (no markdown, no extra text) with $count cultural and typical suggestions to visit/eat/do in $location.
 
 Format EXACTLY as: [{"name": "...", "category": "...", "why_typical": "...", "suggested_time_slot": "..."}]
 

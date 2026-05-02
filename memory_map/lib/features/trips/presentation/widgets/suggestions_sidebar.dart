@@ -44,14 +44,12 @@ class SuggestionsSidebar extends StatelessWidget {
                 tripId: trip.id,
                 country: trip.countries.first,
               ),
-            if (Env.hasGemini &&
-                trip.countries.isNotEmpty &&
-                trip.cities.isNotEmpty)
+            if (Env.hasGemini && trip.countries.isNotEmpty)
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 child: GeminiSuggestions(
                   country: trip.countries.first,
-                  city: trip.cities.first,
+                  city: trip.cities.isNotEmpty ? trip.cities.first : '',
                   dayId: dayId,
                 ),
               ),

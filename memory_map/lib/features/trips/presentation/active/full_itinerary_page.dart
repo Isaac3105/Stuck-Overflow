@@ -50,8 +50,6 @@ class FullItineraryPage extends ConsumerWidget {
               ListView(
                 padding: const EdgeInsets.fromLTRB(16, 12, 16, 96),
                 children: [
-                  WeatherCard(countries: trip.countries),
-                  const SizedBox(height: 16),
                   if (blocks.isEmpty)
                     EmptyState(
                       icon: Icons.add_chart,

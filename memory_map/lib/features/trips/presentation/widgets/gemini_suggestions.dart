@@ -35,7 +35,7 @@ class GeminiSuggestions extends ConsumerWidget {
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      'Cultural suggestions (AI)',
+                      city.isNotEmpty ? 'Suggestions for $city' : 'Suggestions for $country',
                       style: Theme.of(context).textTheme.titleMedium,
                     ),
                   ),
