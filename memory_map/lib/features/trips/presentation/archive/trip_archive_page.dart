@@ -43,7 +43,6 @@ class TripArchivePage extends ConsumerWidget {
                     title: Text(trip.name),
                     expandedHeight: 260,
                     pinned: true,
-                    backgroundColor: Colors.transparent,
                     flexibleSpace: FlexibleSpaceBar(
                       collapseMode: CollapseMode.pin,
                       background: _TripHeaderImage(trip: trip),

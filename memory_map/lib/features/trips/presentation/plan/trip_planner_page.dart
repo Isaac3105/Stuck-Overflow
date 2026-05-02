@@ -332,55 +332,7 @@ class _DayBlocksList extends ConsumerWidget {
   }
 }
 
-class _SuggestionsSidebar extends StatelessWidget {
-  const _SuggestionsSidebar({
-    required this.trip,
-    required this.dayId,
-  });
 
-  final dynamic trip;
-  final String dayId;
-
-  @override
-  Widget build(BuildContext context) {
-    return Drawer(
-      width: MediaQuery.sizeOf(context).width * 0.88,
-      child: SafeArea(
-        child: ListView(
-          padding: const EdgeInsets.symmetric(vertical: 16),
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-              child: Row(
-                children: [
-                  const Icon(Icons.auto_awesome),
-                  const SizedBox(width: 8),
-                  Text(
-                    'Suggestions',
-                    style: Theme.of(context).textTheme.headlineSmall,
-                  ),
-                ],
-              ),
-            ),
-            if (Env.hasSpotify && trip.countries.isNotEmpty)
-              _SpotifySuggestions(
-                tripId: trip.id,
-                country: trip.countries.first,
-              ),
-            if (Env.hasGemini &&
-                trip.countries.isNotEmpty &&
-                trip.cities.isNotEmpty)
-              _GeminiSuggestions(
-                country: trip.countries.first,
-                city: trip.cities.first,
-                dayId: dayId,
-              ),
-          ],
-        ),
-      ),
-    );
-  }
-}
 
 // ---------------------------------------------------------------------------
 // Edit trip sheet
