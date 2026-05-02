@@ -14,6 +14,7 @@ import '../../domain/day.dart';
 import '../../domain/media.dart';
 import '../../domain/trip.dart';
 import '../widgets/activity_block_tile.dart';
+import '../widgets/itinerary_popup.dart';
 import 'trip_gallery_page.dart';
 import '../../../../core/services/weather_service.dart';
 
@@ -137,9 +138,6 @@ class _TripHeaderImage extends ConsumerWidget {
         else
           Container(
             color: Theme.of(context).colorScheme.surfaceContainerHigh,
-            child: const Center(
-              child: Icon(Icons.image_outlined, size: 64),
-            ),
           ),
         // Gradient overlay
         Container(
@@ -163,14 +161,45 @@ class _TripHeaderImage extends ConsumerWidget {
             children: [
               const Spacer(),
               if (locationLine != null)
-                Text(
-                  locationLine,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w700,
+                Padding(
+                  padding: const EdgeInsets.only(top: 12),
+                  child: InkWell(
+                    onTap: () => showItineraryPopup(context, trip),
+                    borderRadius: BorderRadius.circular(20),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.2),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(
+                          color: Colors.white.withValues(alpha: 0.3),
+                          width: 1,
+                        ),
                       ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(
+                            Icons.location_on_outlined,
+                            color: Colors.white,
+                            size: 18,
+                          ),
+                          const SizedBox(width: 8),
+                          Flexible(
+                            child: Text(
+                              locationLine,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
                 ),
             ],
           ),

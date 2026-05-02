@@ -649,16 +649,16 @@ class _TripPreviewDialogState extends ConsumerState<_TripPreviewDialog> {
         child: Container(
           width: double.infinity,
           height: MediaQuery.of(context).size.height * 0.7,
-          color: Colors.white,
+          color: Theme.of(context).colorScheme.surfaceContainerHigh,
           child: Stack(
             fit: StackFit.expand,
             children: [
               featuredAsync.when(
-                loading: () => Container(color: Colors.black12),
-                error: (e, _) => Container(color: Colors.black12),
+                loading: () => const SizedBox.shrink(),
+                error: (e, _) => const SizedBox.shrink(),
                 data: (data) {
                   if (data == null || data.photos.isEmpty) {
-                    return Container(color: Colors.black12);
+                    return const SizedBox.shrink();
                   }
                   return _TripBackgroundSlideshow(photos: data.photos);
                 },

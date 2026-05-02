@@ -157,23 +157,11 @@ class _FeaturedCard extends StatelessWidget {
                         alignment: Alignment.topCenter,
                         errorBuilder: (ctx, err, st) => ColoredBox(
                           color: scheme.surfaceContainerHighest,
-                          child: Icon(
-                            Icons.image_outlined,
-                            size: 56,
-                            color: scheme.onSurfaceVariant
-                                .withValues(alpha: 0.45),
-                          ),
                         ),
                       )
                     else
                       ColoredBox(
                         color: scheme.surfaceContainerHighest,
-                        child: Icon(
-                          Icons.image_outlined,
-                          size: 56,
-                          color: scheme.onSurfaceVariant
-                              .withValues(alpha: 0.45),
-                        ),
                       ),
                     DecoratedBox(
                       decoration: BoxDecoration(
@@ -195,67 +183,103 @@ class _FeaturedCard extends StatelessWidget {
                       left: 16,
                       right: 16,
                       bottom: 16,
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisSize: MainAxisSize.min,
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.end,
                         children: [
-                          Text(
-                            data.trip.name,
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 22,
-                              fontWeight: FontWeight.w700,
-                              height: 1.15,
-                              shadows: [
-                                Shadow(
-                                  color: Color(0x66000000),
-                                  blurRadius: 8,
-                                  offset: Offset(0, 1),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(
+                                  data.trip.name,
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 22,
+                                    fontWeight: FontWeight.w700,
+                                    height: 1.15,
+                                    shadows: [
+                                      Shadow(
+                                        color: Color(0x66000000),
+                                        blurRadius: 8,
+                                        offset: Offset(0, 1),
+                                      ),
+                                    ],
+                                  ),
                                 ),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(height: 6),
-                          Text(
-                            period,
-                            style: TextStyle(
-                              color: Colors.white.withValues(alpha: 0.88),
-                              fontSize: 14,
-                              shadows: const [
-                                Shadow(
-                                  color: Color(0x66000000),
-                                  blurRadius: 6,
+                                const SizedBox(height: 6),
+                                Text(
+                                  period,
+                                  style: TextStyle(
+                                    color: Colors.white.withValues(alpha: 0.88),
+                                    fontSize: 14,
+                                    shadows: const [
+                                      Shadow(
+                                        color: Color(0x66000000),
+                                        blurRadius: 6,
+                                      ),
+                                    ],
+                                  ),
                                 ),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(height: 14),
-                          Row(
-                            children: [
-                              Icon(
-                                Icons.play_circle_filled_rounded,
-                                color: Colors.white.withValues(alpha: 0.95),
-                                size: 30,
-                              ),
-                              const SizedBox(width: 8),
-                              Text(
-                                'Tap to relive',
-                                style: TextStyle(
-                                  color: Colors.white.withValues(alpha: 0.95),
-                                  fontWeight: FontWeight.w500,
-                                  fontSize: 15,
-                                  shadows: const [
-                                    Shadow(
-                                      color: Color(0x66000000),
-                                      blurRadius: 6,
+                                const SizedBox(height: 14),
+                                Row(
+                                  children: [
+                                    Icon(
+                                      Icons.play_circle_filled_rounded,
+                                      color: Colors.white.withValues(alpha: 0.95),
+                                      size: 30,
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Text(
+                                      'Tap to relive',
+                                      style: TextStyle(
+                                        color: Colors.white.withValues(alpha: 0.95),
+                                        fontWeight: FontWeight.w500,
+                                        fontSize: 15,
+                                        shadows: const [
+                                          Shadow(
+                                            color: Color(0x66000000),
+                                            blurRadius: 6,
+                                          ),
+                                        ],
+                                      ),
                                     ),
                                   ],
                                 ),
-                              ),
-                            ],
+                              ],
+                            ),
                           ),
+                          if (data.trip.averageDayRating != null) ...[
+                            const SizedBox(width: 12),
+                            Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(
+                                  data.trip.averageDayRating!.toStringAsFixed(1),
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 24,
+                                    fontWeight: FontWeight.w900,
+                                    shadows: [
+                                      Shadow(
+                                        color: Colors.black45,
+                                        blurRadius: 8,
+                                        offset: Offset(0, 1),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                const SizedBox(width: 4),
+                                const Icon(
+                                  Icons.star_rounded,
+                                  color: Colors.amber,
+                                  size: 26,
+                                ),
+                              ],
+                            ),
+                          ],
                         ],
                       ),
                     ),
