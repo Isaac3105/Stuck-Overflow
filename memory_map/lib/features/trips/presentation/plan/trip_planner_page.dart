@@ -66,6 +66,7 @@ class _TripPlannerPageState extends ConsumerState<TripPlannerPage> {
 
     return Scaffold(
       appBar: AppBar(
+        scrolledUnderElevation: 0,
         title: tripAsync.maybeWhen(
           data: (t) => Text(t?.name ?? ''),
           orElse: () => const Text('Viagem'),
@@ -491,7 +492,7 @@ class _GeminiSuggestions extends ConsumerWidget {
                               builder: (_) => ActivityBlockForm(
                                 dayId: dayId,
                                 prefillTitle: p.name,
-                                prefillNotes: '${p.category} · ${p.suggestedTimeSlot}\n${p.whyTypical}',
+                                prefillNotes: p.whyTypical,
                               ),
                             );
                           },
