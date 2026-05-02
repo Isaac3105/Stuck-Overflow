@@ -130,19 +130,57 @@ class LocalTripRepository implements TripRepository {
 
   @override
   Future<void> updateTrip(Trip trip) async {
-    await (db.update(db.trips)..where((t) => t.id.equals(trip.id))).write(
-      TripsCompanion(
-        name: Value(trip.name),
-        countriesJson: Value(jsonEncode(trip.countries)),
-        citiesJson: Value(jsonEncode(trip.cities)),
-        startDate: Value(trip.startDate.millisecondsSinceEpoch),
-        endDate: Value(trip.endDate.millisecondsSinceEpoch),
-        status: Value(trip.status.name),
-        coverMediaId: Value(trip.coverMediaId),
-        selectedPlaylistId: Value(trip.selectedPlaylistId),
-        averageDayRating: Value(trip.averageDayRating),
-      ),
-    );
+    await db.transaction(() async {
+      await (db.update(db.trips)..where((t) => t.id.equals(trip.id))).write(
+        TripsCompanion(
+          name: Value(trip.name),
+          countriesJson: Value(jsonEncode(trip.countries)),
+          citiesJson: Value(jsonEncode(trip.cities)),
+          startDate: Value(trip.startDate.millisecondsSinceEpoch),
+          endDate: Value(trip.endDate.millisecondsSinceEpoch),
+          status: Value(trip.status.name),
+          coverMediaId: Value(trip.coverMediaId),
+          selectedPlaylistId: Value(trip.selectedPlaylistId),
+          averageDayRating: Value(trip.averageDayRating),
+        ),
+      );
+
+      // Sync days
+      final existingRows = await (db.select(db.days)
+            ..where((d) => d.tripId.equals(trip.id))
+            ..orderBy([(d) => OrderingTerm(expression: d.date)]))
+          .get();
+
+      final start = DateTime(trip.startDate.year, trip.startDate.month, trip.startDate.day);
+      final end = DateTime(trip.endDate.year, trip.endDate.month, trip.endDate.day);
+      final newTotalDays = end.difference(start).inDays + 1;
+
+      for (var i = 0; i < newTotalDays; i++) {
+        final d = start.add(Duration(days: i));
+        if (i < existingRows.length) {
+          // Update existing day's date
+          await (db.update(db.days)..where((row) => row.id.equals(existingRows[i].id)))
+              .write(DaysCompanion(date: Value(d.millisecondsSinceEpoch)));
+        } else {
+          // Add new day
+          await db.into(db.days).insert(DaysCompanion.insert(
+                id: _uuid.v4(),
+                tripId: trip.id,
+                date: d.millisecondsSinceEpoch,
+              ));
+        }
+      }
+
+      // Delete excess days and their children
+      if (existingRows.length > newTotalDays) {
+        for (var i = newTotalDays; i < existingRows.length; i++) {
+          final dayId = existingRows[i].id;
+          await (db.delete(db.activityBlocks)..where((b) => b.dayId.equals(dayId))).go();
+          await (db.delete(db.mediaItems)..where((m) => m.dayId.equals(dayId))).go();
+          await (db.delete(db.days)..where((d) => d.id.equals(dayId))).go();
+        }
+      }
+    });
   }
 
   @override
