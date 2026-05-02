@@ -266,6 +266,14 @@ class LocalTripRepository implements TripRepository {
   }
 
   @override
+  Future<ActivityBlock?> getActivityBlock(String blockId) async {
+    final row = await (db.select(db.activityBlocks)
+          ..where((b) => b.id.equals(blockId)))
+        .getSingleOrNull();
+    return row == null ? null : _toBlock(row);
+  }
+
+  @override
   Stream<List<MediaItem>> watchMediaForTrip(String tripId) {
     final q = db.select(db.mediaItems)
       ..where((m) => m.tripId.equals(tripId))
