@@ -67,46 +67,49 @@ class TripCard extends StatelessWidget {
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
-                      Wrap(
-                        spacing: 4,
-                        children: trip.countries
-                            .take(4)
-                            .map(
+                      Flexible(
+                        child: SingleChildScrollView(
+                          scrollDirection: Axis.horizontal,
+                          child: Row(
+                            children: trip.countries.map(
                               (name) {
                                 final code = resolveGeography(name)?.code;
                                 if (code == null) return const SizedBox.shrink();
-                                return ClipRRect(
-                                  borderRadius: BorderRadius.circular(3),
-                                  child: SizedBox(
-                                    width: 24,
-                                    height: 16,
-                                    child: Flag.fromString(code, fit: BoxFit.cover),
+                                return Padding(
+                                  padding: const EdgeInsets.only(right: 4),
+                                  child: ClipRRect(
+                                    borderRadius: BorderRadius.circular(3),
+                                    child: SizedBox(
+                                      width: 24,
+                                      height: 16,
+                                      child: Flag.fromString(code,
+                                          fit: BoxFit.cover),
+                                    ),
                                   ),
                                 );
                               },
-                            )
-                            .toList(),
+                            ).toList(),
+                          ),
+                        ),
                       ),
                       if (subtitle.isNotEmpty) ...[
                         const SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            subtitle,
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 13,
-                              shadows: [
-                                Shadow(
-                                  color: Colors.black45,
-                                  blurRadius: 4,
-                                  offset: Offset(2, 2),
-                                ),
-                              ],
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
+                        Text(
+                          subtitle,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 13,
+                            shadows: [
+                              Shadow(
+                                color: Colors.black45,
+                                blurRadius: 4,
+                                offset: Offset(2, 2),
+                              ),
+                            ],
                           ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ],
                     ],

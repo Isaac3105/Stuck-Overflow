@@ -637,12 +637,9 @@ class _TripPreviewDialogState extends ConsumerState<_TripPreviewDialog> {
     final featuredAsync = ref.watch(tripFeaturedDataProvider(widget.trip.id));
     final range =
         '${DateFormat('d MMM yyyy', 'en').format(widget.trip.startDate)} → ${DateFormat('d MMM yyyy', 'en').format(widget.trip.endDate)}';
-    final place = [
-      if (widget.trip.countries.isNotEmpty)
-        resolveGeography(widget.trip.countries.first)?.name ??
-            widget.trip.countries.first,
-      if (widget.trip.cities.isNotEmpty) widget.trip.cities.first,
-    ].join(', ');
+    final countries = widget.trip.countries
+        .map((c) => resolveGeography(c)?.name ?? c)
+        .toList();
 
     return Dialog(
       backgroundColor: Colors.transparent,
@@ -762,23 +759,77 @@ class _TripPreviewDialogState extends ConsumerState<_TripPreviewDialog> {
                             ),
                           ),
                         Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Icon(
-                              Icons.location_on,
-                              color: Colors.white70,
-                              size: 18,
+                            const Padding(
+                              padding: EdgeInsets.only(top: 3),
+                              child: Icon(
+                                Icons.location_on,
+                                color: Colors.white70,
+                                size: 18,
+                              ),
                             ),
                             const SizedBox(width: 4),
                             Expanded(
-                              child: Text(
-                                place,
-                                style: const TextStyle(
-                                  color: Colors.white70,
-                                  fontSize: 18,
-                                ),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
+                              child: countries.length <= 5
+                                  ? Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        for (final country in countries)
+                                          Text(
+                                            country,
+                                            style: const TextStyle(
+                                              color: Colors.white,
+                                              fontSize: 18,
+                                              fontWeight: FontWeight.w500,
+                                            ),
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                      ],
+                                    )
+                                  : SizedBox(
+                                      height: 140,
+                                      child: ShaderMask(
+                                        shaderCallback: (rect) {
+                                          return const LinearGradient(
+                                            begin: Alignment.topCenter,
+                                            end: Alignment.bottomCenter,
+                                            colors: [
+                                              Colors.black,
+                                              Colors.transparent
+                                            ],
+                                            stops: [0.75, 1.0],
+                                          ).createShader(rect);
+                                        },
+                                        blendMode: BlendMode.dstIn,
+                                        child: SingleChildScrollView(
+                                          child: Column(
+                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            children: [
+                                              for (final country in countries)
+                                                Padding(
+                                                  padding: const EdgeInsets.only(
+                                                      bottom: 4),
+                                                  child: Text(
+                                                    country,
+                                                    style: const TextStyle(
+                                                      color: Colors.white,
+                                                      fontSize: 18,
+                                                      fontWeight:
+                                                          FontWeight.w500,
+                                                    ),
+                                                    maxLines: 1,
+                                                    overflow:
+                                                        TextOverflow.ellipsis,
+                                                  ),
+                                                ),
+                                              const SizedBox(height: 20),
+                                            ],
+                                          ),
+                                        ),
+                                      ),
+                                    ),
                             ),
                           ],
                         ),

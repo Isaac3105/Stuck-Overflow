@@ -111,12 +111,16 @@ class _TripHeaderImage extends ConsumerWidget {
     final coverPath = ref.watch(tripCoverImagePathProvider(trip));
 
     final locationParts = <String>[];
-    if (trip.countries.isNotEmpty) {
-      final entry = resolveGeography(trip.countries.first);
-      locationParts.add(entry?.name ?? trip.countries.first);
-    }
-    if (trip.cities.isNotEmpty) {
-      locationParts.add(trip.cities.first);
+    if (trip.countries.length > 2) {
+      final names = trip.countries
+          .take(2)
+          .map((c) => resolveGeography(c)?.name ?? c)
+          .join(', ');
+      locationParts.add('$names (+${trip.countries.length - 2})');
+    } else if (trip.countries.isNotEmpty) {
+      locationParts.addAll(
+        trip.countries.map((c) => resolveGeography(c)?.name ?? c),
+      );
     }
     final locationLine =
         locationParts.isEmpty ? null : locationParts.join(', ');
