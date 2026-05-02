@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:gal/gal.dart';
 import '../trips/data/trip_providers.dart';
 
 class PhotoThumbnail extends StatelessWidget {
@@ -94,6 +95,30 @@ class PhotoViewerPage extends ConsumerWidget {
               tooltip: isCover ? 'Imagem de destaque' : 'Definir como capa do dia',
               onPressed: () => _setAsDayCover(context, ref),
             ),
+          IconButton(
+            icon: const Icon(Icons.download),
+            tooltip: 'Download da foto',
+            onPressed: () async {
+              try {
+                final hasAccess = await Gal.hasAccess(toAlbum: true);
+                if (!hasAccess) {
+                  await Gal.requestAccess(toAlbum: true);
+                }
+                await Gal.putImage(filePath);
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Foto salva na galeria!')),
+                  );
+                }
+              } catch (e) {
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Erro ao salvar foto: $e')),
+                  );
+                }
+              }
+            },
+          ),
         ],
       ),
       body: Center(

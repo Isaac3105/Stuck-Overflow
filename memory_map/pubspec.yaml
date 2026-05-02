@@ -41,6 +41,7 @@ dependencies:
   google_generative_ai: ^0.4.6
 
   # Utilities
+  gal: ^2.3.0
   intl: ^0.20.2
   uuid: ^4.5.1
   collection: ^1.18.0
@@ -51,6 +52,8 @@ dependencies:
   # Models
   freezed_annotation: ^3.0.0
   json_annotation: ^4.9.0
+  flutter_map: ^8.3.0
+  latlong2: ^0.9.1
 
 dev_dependencies:
   flutter_test:
@@ -71,3 +74,4 @@ flutter:
   generate: true
   assets:
     - assets/images/
+    - assets/geo/ne_110m_admin_0_countries.geojson

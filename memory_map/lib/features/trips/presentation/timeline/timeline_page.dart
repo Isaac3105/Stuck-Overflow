@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
 import '../../../media/audio_player_tile.dart';
@@ -119,11 +120,28 @@ class _MemoryCard extends StatelessWidget {
                 ),
                 const SizedBox(width: 8),
                 Expanded(
-                  child: Text(
-                    trip?.name ?? 'Trip',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: Theme.of(context).textTheme.titleSmall,
+                  child: InkWell(
+                    onTap: trip == null
+                        ? null
+                        : () {
+                            final status = trip!.resolvedStatus(DateTime.now());
+                            if (status == TripStatus.completed) {
+                              context.go('/archive/${trip!.id}');
+                            } else {
+                              context.go('/plan/${trip!.id}');
+                            }
+                          },
+                    child: Text(
+                      trip?.name ?? 'Trip',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                            color: scheme.primary,
+                            decoration: trip != null
+                                ? TextDecoration.underline
+                                : null,
+                          ),
+                    ),
                   ),
                 ),
                 Text(

@@ -2,7 +2,11 @@ import 'dart:math';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/services/weather_service.dart'
+    show coordsForCountries, coordsMidpointOfCapitals;
 import '../../data/trip_providers.dart';
+import '../../data/trip_repository.dart';
+import '../../domain/activity_block.dart';
 import '../../domain/media.dart';
 import '../../domain/trip.dart';
 
@@ -12,33 +16,39 @@ class FeaturedTripData {
     required this.photos,
     required this.audios,
     this.mainImageIds = const {},
+    this.mapLatitude,
+    this.mapLongitude,
+    this.mapZoom,
   });
   final Trip trip;
   final List<MediaItem> photos;
   final List<MediaItem> audios;
   final Set<String> mainImageIds;
 
-  String? get coverImagePath {
+  /// Center for the home preview map (block GPS or trip country capital).
+  final double? mapLatitude;
+  final double? mapLongitude;
+  final double? mapZoom;
+
+  bool get hasMap =>
+      mapLatitude != null && mapLongitude != null && mapZoom != null;
+
+  MediaItem? get coverPhoto {
     if (photos.isEmpty) return null;
-    
-    // 1. Trip-wide cover
     if (trip.coverMediaId != null) {
-      final found = photos.where((p) => p.id == trip.coverMediaId).firstOrNull;
-      if (found != null) return found.filePath;
+      for (final p in photos) {
+        if (p.id == trip.coverMediaId) return p;
+      }
     }
-
-    // 2. Day cover
     if (mainImageIds.isNotEmpty) {
-      final found = photos.where((p) => mainImageIds.contains(p.id)).firstOrNull;
-      if (found != null) return found.filePath;
+      for (final p in photos) {
+        if (mainImageIds.contains(p.id)) return p;
+      }
     }
-
-    // 3. We don't easily have access to days here, 
-    // but the photos list is already sorted chronologically.
-    // So photos.first is the first photo of the trip.
-    
-    return photos.first.filePath;
+    return photos.first;
   }
+
+  String? get coverImagePath => coverPhoto?.filePath;
 
   String get subtitle {
     final start = trip.startDate;
@@ -48,6 +58,76 @@ class FeaturedTripData {
     ];
     return '${months[start.month - 1]} de ${start.year}';
   }
+}
+
+Future<({double lat, double lng, double zoom})?> _resolveMapFocus({
+  required TripRepository repo,
+  required Trip trip,
+  required List<MediaItem> photos,
+  required Set<String> mainImageIds,
+}) async {
+  MediaItem? cover;
+  if (photos.isNotEmpty) {
+    if (trip.coverMediaId != null) {
+      for (final p in photos) {
+        if (p.id == trip.coverMediaId) {
+          cover = p;
+          break;
+        }
+      }
+    }
+    cover ??= () {
+      if (mainImageIds.isNotEmpty) {
+        for (final p in photos) {
+          if (mainImageIds.contains(p.id)) return p;
+        }
+      }
+      return photos.first;
+    }();
+  }
+
+  final blockId = cover?.activityBlockId;
+  if (blockId != null) {
+    final ActivityBlock? block = await repo.getActivityBlock(blockId);
+    final lat = block?.latitude;
+    final lng = block?.longitude;
+    if (lat != null && lng != null) {
+      return (lat: lat, lng: lng, zoom: 14.0);
+    }
+  }
+
+  final c = trip.countries.length > 1
+      ? (coordsMidpointOfCapitals(trip.countries) ??
+          coordsForCountries(trip.countries))
+      : coordsForCountries(trip.countries);
+  if (c != null) {
+    return (lat: c.lat, lng: c.lng, zoom: 6.5);
+  }
+  return null;
+}
+
+Future<FeaturedTripData> _buildFeaturedData({
+  required TripRepository repo,
+  required Trip trip,
+  required List<MediaItem> photos,
+  required List<MediaItem> audios,
+  required Set<String> mainImageIds,
+}) async {
+  final focus = await _resolveMapFocus(
+    repo: repo,
+    trip: trip,
+    photos: photos,
+    mainImageIds: mainImageIds,
+  );
+  return FeaturedTripData(
+    trip: trip,
+    photos: photos,
+    audios: audios,
+    mainImageIds: mainImageIds,
+    mapLatitude: focus?.lat,
+    mapLongitude: focus?.lng,
+    mapZoom: focus?.zoom,
+  );
 }
 
 /// Re-rolls each time it's invalidated.
@@ -69,12 +149,12 @@ final featuredCompletedTripProvider =
   if (completed.isEmpty) return null;
 
   final repo = ref.watch(tripRepositoryProvider);
-  // Try up to N times to find a trip with photos.
   final rng = Random(seed);
   for (var attempts = 0; attempts < completed.length; attempts++) {
     final t = completed[rng.nextInt(completed.length)];
     final days = await repo.getDays(t.id);
-    final mainImageIds = days.map((d) => d.coverMediaId).whereType<String>().toSet();
+    final mainImageIds =
+        days.map((d) => d.coverMediaId).whereType<String>().toSet();
 
     final media = await repo.watchMediaForTrip(t.id).first;
     final photos = media.where((m) => m.type == MediaType.photo).toList()
@@ -83,9 +163,14 @@ final featuredCompletedTripProvider =
     if (photos.isEmpty) continue;
     final audios = media.where((m) => m.type == MediaType.audio).toList()
       ..sort((a, b) => a.takenAt.compareTo(b.takenAt));
-    return FeaturedTripData(trip: t, photos: photos, audios: audios, mainImageIds: mainImageIds);
+    return _buildFeaturedData(
+      repo: repo,
+      trip: t,
+      photos: photos,
+      audios: audios,
+      mainImageIds: mainImageIds,
+    );
   }
-  // Fallback: any completed trip even without photos.
   final t = completed.first;
   return FeaturedTripData(trip: t, photos: const [], audios: const []);
 });
@@ -113,5 +198,12 @@ final tripFeaturedDataProvider =
   final audios = media.where((m) => m.type == MediaType.audio).toList()
     ..sort((a, b) => a.takenAt.compareTo(b.takenAt));
 
-  return FeaturedTripData(trip: trip, photos: photos, audios: audios, mainImageIds: mainImageIds);
+  final repo = ref.watch(tripRepositoryProvider);
+  return _buildFeaturedData(
+    repo: repo,
+    trip: trip,
+    photos: photos,
+    audios: audios,
+    mainImageIds: mainImageIds,
+  );
 });

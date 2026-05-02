@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
+import '../../../../core/data/geography.dart';
 import '../../../media/audio_player_tile.dart';
 import '../../../media/photo_thumbnail.dart';
 import '../../../music/data/spotify_repository.dart';
@@ -119,16 +120,18 @@ class _Header extends StatelessWidget {
         spacing: 6,
         children: countries
             .take(8)
-            .map(
-              (c) => ClipRRect(
+            .map((name) {
+              final code = resolveGeography(name)?.code;
+              if (code == null) return const SizedBox.shrink();
+              return ClipRRect(
                 borderRadius: BorderRadius.circular(3),
                 child: SizedBox(
                   width: 28,
                   height: 18,
-                  child: Flag.fromString(c, fit: BoxFit.cover),
+                  child: Flag.fromString(code, fit: BoxFit.cover),
                 ),
-              ),
-            )
+              );
+            })
             .toList(),
       ),
     );
