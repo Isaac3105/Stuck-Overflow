@@ -8,7 +8,7 @@ import 'geo/country_shapes_provider.dart';
 import 'geo/trip_country_bounds.dart';
 
 Color _cartoonMapBase(ColorScheme scheme) => Color.alphaBlend(
-      scheme.primary.withValues(alpha: 0.08),
+      scheme.primary.withValues(alpha: 0.045),
       scheme.surfaceContainerLow,
     );
 
@@ -82,11 +82,18 @@ class _CartoonCountryMapBody extends StatelessWidget {
       center: center,
     );
 
-    final tripFill = scheme.primaryContainer.withValues(alpha: 0.24);
-    final tripBorder = scheme.outline.withValues(alpha: 0.88);
-    final contextFill =
-        scheme.surfaceContainerHighest.withValues(alpha: 0.42);
-    final contextBorder = scheme.onSurface.withValues(alpha: 0.32);
+    // Trip countries: stronger coral wash + crisp primary edge.
+    final tripFill = Color.alphaBlend(
+      scheme.primary.withValues(alpha: 0.52),
+      scheme.surface,
+    );
+    final tripBorder = scheme.primary;
+    // Neighbour context: recede with low-contrast fill + soft dashed outline.
+    final contextFill = Color.alphaBlend(
+      scheme.onSurface.withValues(alpha: 0.085),
+      scheme.surface,
+    );
+    final contextBorder = scheme.outline.withValues(alpha: 0.55);
 
     final tripPolygons = <Polygon<Object>>[];
     final contextPolygons = <Polygon<Object>>[];
@@ -98,7 +105,7 @@ class _CartoonCountryMapBody extends StatelessWidget {
             points: s.exterior,
             holePointsList: s.holes.isEmpty ? null : s.holes,
             color: tripFill,
-            borderStrokeWidth: 1.45,
+            borderStrokeWidth: 1.75,
             borderColor: tripBorder,
             pattern: const StrokePattern.solid(),
           ),
@@ -117,10 +124,10 @@ class _CartoonCountryMapBody extends StatelessWidget {
               points: s.exterior,
               holePointsList: s.holes.isEmpty ? null : s.holes,
               color: contextFill,
-              borderStrokeWidth: 1.15,
+              borderStrokeWidth: 1.0,
               borderColor: contextBorder,
               pattern: StrokePattern.dashed(
-                segments: const [5, 4],
+                segments: const [6, 5],
                 patternFit: PatternFit.scaleUp,
               ),
             ),
@@ -149,7 +156,7 @@ class _CartoonCountryMapBody extends StatelessWidget {
             points: s.exterior,
             holePointsList: s.holes.isEmpty ? null : s.holes,
             color: tripFill,
-            borderStrokeWidth: 1.45,
+            borderStrokeWidth: 1.75,
             borderColor: tripBorder,
             pattern: const StrokePattern.solid(),
           ),
