@@ -601,14 +601,40 @@ class _HeaderCard extends ConsumerWidget {
   }
 }
 
-class _CapturesSection extends StatelessWidget {
+class _CapturesSection extends ConsumerWidget {
   const _CapturesSection({required this.dayId, required this.mediaAsync});
 
   final String dayId;
   final AsyncValue<List<MediaItem>> mediaAsync;
 
+  Future<void> _confirmDeleteAudio(BuildContext context, WidgetRef ref, String mediaId) async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Delete audio?'),
+        content: const Text('This recording will be permanently removed.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(
+              backgroundColor: Theme.of(ctx).colorScheme.error,
+              foregroundColor: Theme.of(ctx).colorScheme.onError,
+            ),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+    if (ok != true || !context.mounted) return;
+    await ref.read(tripRepositoryProvider).deleteMedia(mediaId);
+  }
+
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -665,6 +691,7 @@ class _CapturesSection extends StatelessWidget {
                       child: AudioPlayerTile(
                         filePath: a.filePath,
                         label: 'Audio at ${DateFormat('HH:mm').format(a.takenAt)}',
+                        onDelete: () => _confirmDeleteAudio(context, ref, a.id),
                       ),
                     ),
                   ),
@@ -676,6 +703,7 @@ class _CapturesSection extends StatelessWidget {
       ],
     );
   }
+
 }
 
 

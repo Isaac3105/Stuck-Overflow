@@ -8,10 +8,12 @@ class AudioPlayerTile extends StatefulWidget {
     super.key,
     required this.filePath,
     required this.label,
+    this.onDelete,
   });
 
   final String filePath;
   final String label;
+  final VoidCallback? onDelete;
 
   @override
   State<AudioPlayerTile> createState() => _AudioPlayerTileState();
@@ -105,6 +107,13 @@ class _AudioPlayerTileState extends State<AudioPlayerTile> {
                 ],
               ),
             ),
+            if (widget.onDelete != null)
+              IconButton(
+                icon: const Icon(Icons.delete_outline),
+                tooltip: 'Delete audio',
+                color: scheme.error,
+                onPressed: widget.onDelete,
+              ),
           ],
         ),
       ),
