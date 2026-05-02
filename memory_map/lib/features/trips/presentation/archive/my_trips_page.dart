@@ -2,7 +2,6 @@
 import 'dart:async';
 import 'dart:io';
 
-import 'package:flag/flag.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -16,11 +15,46 @@ import '../home/home_providers.dart';
 import '../home/story_player_page.dart';
 import '../widgets/trip_card.dart';
 
-class MyTrips extends ConsumerWidget {
+enum _MyTripsSort { date, rating, country }
+
+class _MyTripsFilterState {
+  const _MyTripsFilterState({
+    this.ratingRange = const RangeValues(0, 5),
+    this.destinationQuery = '',
+    this.dateRange,
+  });
+
+  final RangeValues ratingRange;
+  final String destinationQuery;
+  final DateTimeRange? dateRange;
+}
+
+class MyTrips extends ConsumerStatefulWidget {
   const MyTrips({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<MyTrips> createState() => _MyTripsState();
+}
+
+class _MyTripsState extends ConsumerState<MyTrips> {
+  String _searchQuery = '';
+  _MyTripsSort _sort = _MyTripsSort.date;
+  bool _sortAscending = false;
+  _MyTripsFilterState _filters = const _MyTripsFilterState();
+
+  List<Trip> _visibleTrips(List<Trip> all, DateTime now) {
+    final completed = all
+        .where((t) => t.resolvedStatus(now) == TripStatus.completed)
+        .where((t) => _matchesSearch(t, _searchQuery))
+        .where((t) => _matchesRating(t, _filters.ratingRange))
+        .where((t) => _matchesDestination(t, _filters.destinationQuery))
+        .where((t) => _matchesDateRange(t, _filters.dateRange))
+        .toList(growable: false);
+    return _sortTrips(completed, _sort, _sortAscending);
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final tripsAsync = ref.watch(allTripsProvider);
 
     return tripsAsync.when(
@@ -28,14 +62,11 @@ class MyTrips extends ConsumerWidget {
       error: (e, _) => Center(child: Text('Error: $e')),
       data: (trips) {
         final now = DateTime.now();
-        final completed = trips
-            .where((t) => t.resolvedStatus(now) == TripStatus.completed)
-            .toList(growable: false);
+        final visible = _visibleTrips(trips, now);
 
         return SafeArea(
           child: Column(
             children: [
-              // Search Bar + Sort & Filter Buttons
               Padding(
                 padding: const EdgeInsets.all(16.0),
                 child: Row(
@@ -47,7 +78,7 @@ class MyTrips extends ConsumerWidget {
                         padding: const WidgetStatePropertyAll(
                           EdgeInsets.symmetric(horizontal: 16),
                         ),
-                        onChanged: (value) {},
+                        onChanged: (value) => setState(() => _searchQuery = value),
                       ),
                     ),
                     const SizedBox(width: 8),
@@ -66,20 +97,31 @@ class MyTrips extends ConsumerWidget {
                 ),
               ),
               Expanded(
-                child: completed.isEmpty
+                child: visible.isEmpty
                     ? const Center(child: Text('No completed trips.'))
                     : GridView.builder(
-                        padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
                         physics: const ClampingScrollPhysics(),
-                        gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-                          maxCrossAxisExtent: 240,
-                          mainAxisExtent: 220,
-                          crossAxisSpacing: 12,
-                          mainAxisSpacing: 12,
+                        gridDelegate:
+                            const SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: 2,
+                          crossAxisSpacing: 16,
+                          mainAxisSpacing: 16,
+                          childAspectRatio: 0.85,
                         ),
-                        itemCount: completed.length,
-                        itemBuilder: (context, index) =>
-                            _TripCard(trip: completed[index]),
+                        itemCount: visible.length,
+                        itemBuilder: (context, index) {
+                          final t = visible[index];
+                          final coverPath = ref.watch(_coverImagePathProvider(t));
+                          return TripCard(
+                            trip: t,
+                            coverImagePath: coverPath,
+                            onTap: () => showDialog(
+                              context: context,
+                              builder: (_) => _TripPreviewDialog(trip: t),
+                            ),
+                          );
+                        },
                       ),
               ),
             ],
@@ -107,13 +149,13 @@ class MyTrips extends ConsumerWidget {
     );
   }
 
-  void _showSortSheet(BuildContext context) {
-    showModalBottomSheet(
+  Future<void> _showSortSheet(BuildContext context) async {
+    final chosen = await showModalBottomSheet<_MyTripsSort>(
       context: context,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      builder: (context) {
+      builder: (ctx) {
         return Padding(
           padding: const EdgeInsets.all(20.0),
           child: Column(
@@ -121,192 +163,294 @@ class MyTrips extends ConsumerWidget {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               const Text(
-                'Sort By',
+                'Sort by',
                 style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 16),
               ListTile(
                 leading: const Icon(Icons.calendar_today),
                 title: const Text('Date'),
-                onTap: () => Navigator.pop(context),
+                trailing: _sort == _MyTripsSort.date
+                    ? Icon(_sortAscending ? Icons.arrow_upward : Icons.arrow_downward)
+                    : null,
+                onTap: () => Navigator.pop(ctx, _MyTripsSort.date),
               ),
               ListTile(
                 leading: const Icon(Icons.language),
-                title: const Text('Country Name'),
-                onTap: () => Navigator.pop(context),
+                title: const Text('Country'),
+                trailing: _sort == _MyTripsSort.country
+                    ? Icon(_sortAscending ? Icons.arrow_upward : Icons.arrow_downward)
+                    : null,
+                onTap: () => Navigator.pop(ctx, _MyTripsSort.country),
               ),
               ListTile(
                 leading: const Icon(Icons.star_outline),
                 title: const Text('Rating'),
-                onTap: () => Navigator.pop(context),
+                trailing: _sort == _MyTripsSort.rating
+                    ? Icon(_sortAscending ? Icons.arrow_upward : Icons.arrow_downward)
+                    : null,
+                onTap: () => Navigator.pop(ctx, _MyTripsSort.rating),
               ),
             ],
           ),
         );
       },
     );
+    if (chosen != null && mounted) {
+      setState(() {
+        if (_sort == chosen) {
+          _sortAscending = !_sortAscending;
+        } else {
+          _sort = chosen;
+          _sortAscending = chosen == _MyTripsSort.country;
+        }
+      });
+    }
   }
 
-  void _showFilterSheet(BuildContext context) {
-    RangeValues ratingRange = const RangeValues(0.0, 5.0);
-
-    showModalBottomSheet(
+  Future<void> _showFilterSheet(BuildContext context) async {
+    final applied = await showModalBottomSheet<_MyTripsFilterState>(
       context: context,
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      builder: (context) {
-        return StatefulBuilder(
-          builder: (context, setModalState) {
-            return Padding(
-              padding: EdgeInsets.only(
-                bottom: MediaQuery.of(context).viewInsets.bottom,
-                left: 20,
-                right: 20,
-                top: 20,
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const Text(
-                        'Filter Configuration',
-                        style: TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      IconButton(
-                        onPressed: () => Navigator.pop(context),
-                        icon: const Icon(Icons.close),
-                      ),
-                    ],
-                  ),
-                  const Divider(),
-                  const SizedBox(height: 16),
-                  const Text(
-                    'Destination',
-                    style: TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(height: 8),
-                  const TextField(
-                    decoration: InputDecoration(
-                      hintText: 'Enter country or city',
-                      prefixIcon: Icon(Icons.location_on_outlined),
-                      border: OutlineInputBorder(),
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const Text(
-                        'Rating Range',
-                        style: TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                      Text(
-                        '${ratingRange.start.toStringAsFixed(1)} ★ - ${ratingRange.end.toStringAsFixed(1)} ★',
-                        style: TextStyle(
-                          color: Theme.of(context).colorScheme.primary,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ],
-                  ),
-                  RangeSlider(
-                    values: ratingRange,
-                    min: 0.0,
-                    max: 5.0,
-                    divisions: 5,
-                    labels: RangeLabels(
-                      ratingRange.start.toStringAsFixed(1),
-                      ratingRange.end.toStringAsFixed(1),
-                    ),
-                    onChanged: (values) {
-                      setModalState(() {
-                        ratingRange = values;
-                      });
-                    },
-                  ),
-                  const SizedBox(height: 20),
-                  const Text(
-                    'Date Range',
-                    style: TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(height: 8),
-                  OutlinedButton.icon(
-                    onPressed: () {},
-                    icon: const Icon(Icons.calendar_month),
-                    label: const Text('Select Dates'),
-                    style: OutlinedButton.styleFrom(
-                      alignment: Alignment.centerLeft,
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 12,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 32),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: TextButton(
-                          onPressed: () => Navigator.pop(context),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor:
-                                Theme.of(context).colorScheme.primary,
-                            foregroundColor: Colors.white,
-                          ),
-                          child: const Text('Reset All'),
-                        ),
-                      ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: ElevatedButton(
-                          onPressed: () => Navigator.pop(context),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor:
-                                Theme.of(context).colorScheme.primary,
-                            foregroundColor: Colors.white,
-                          ),
-                          child: const Text('Apply Filters'),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 20),
-                ],
-              ),
-            );
-          },
-        );
+      builder: (sheetCtx) {
+        return _FilterSheetBody(initial: _filters);
       },
     );
+    if (applied != null && mounted) setState(() => _filters = applied);
   }
 }
 
-class _TripCard extends ConsumerWidget {
-  const _TripCard({required this.trip});
-  final Trip trip;
+List<Trip> _sortTrips(List<Trip> trips, _MyTripsSort sort, bool ascending) {
+  final out = [...trips];
+  switch (sort) {
+    case _MyTripsSort.date:
+      out.sort((a, b) {
+        final cmp = a.endDate.compareTo(b.endDate);
+        return ascending ? cmp : -cmp;
+      });
+      break;
+    case _MyTripsSort.rating:
+      out.sort((a, b) {
+        final aa = a.averageDayRating ?? -1;
+        final ba = b.averageDayRating ?? -1;
+        final cmp = aa.compareTo(ba);
+        return ascending ? cmp : -cmp;
+      });
+      break;
+    case _MyTripsSort.country:
+      out.sort((a, b) {
+        final ac = a.countries.isEmpty ? '' : a.countries.first;
+        final bc = b.countries.isEmpty ? '' : b.countries.first;
+        final cmp = ac.compareTo(bc);
+        return ascending ? cmp : -cmp;
+      });
+      break;
+  }
+  return out;
+}
+
+bool _matchesSearch(Trip t, String q) {
+  final s = q.trim().toLowerCase();
+  if (s.isEmpty) return true;
+  return t.name.toLowerCase().contains(s) ||
+      t.countries.any((c) => c.toLowerCase().contains(s)) ||
+      t.cities.any((c) => c.toLowerCase().contains(s));
+}
+
+bool _matchesRating(Trip t, RangeValues r) {
+  final v = t.averageDayRating;
+  if (v == null) return r.start <= 0.01;
+  return v + 1e-9 >= r.start && v - 1e-9 <= r.end;
+}
+
+bool _matchesDestination(Trip t, String q) {
+  final s = q.trim().toLowerCase();
+  if (s.isEmpty) return true;
+  return t.name.toLowerCase().contains(s) ||
+      t.countries.any((c) => c.toLowerCase().contains(s)) ||
+      t.cities.any((c) => c.toLowerCase().contains(s));
+}
+
+bool _matchesDateRange(Trip t, DateTimeRange? dr) {
+  if (dr == null) return true;
+  final tripStart = DateTime(t.startDate.year, t.startDate.month, t.startDate.day);
+  final tripEnd = DateTime(t.endDate.year, t.endDate.month, t.endDate.day);
+  final r0 = DateTime(dr.start.year, dr.start.month, dr.start.day);
+  final r1 = DateTime(dr.end.year, dr.end.month, dr.end.day);
+  return !(tripEnd.isBefore(r0) || tripStart.isAfter(r1));
+}
+
+class _FilterSheetBody extends StatefulWidget {
+  const _FilterSheetBody({required this.initial});
+  final _MyTripsFilterState initial;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final coverPath = ref.watch(_coverImagePathProvider(trip));
+  State<_FilterSheetBody> createState() => _FilterSheetBodyState();
+}
 
-    return TripCard(
-      trip: trip,
-      coverImagePath: coverPath,
-      onTap: () => showDialog(
-        context: context,
-        builder: (_) => _TripPreviewDialog(trip: trip),
+class _FilterSheetBodyState extends State<_FilterSheetBody> {
+  late RangeValues _ratingRange;
+  late final TextEditingController _destination;
+  DateTimeRange? _dateRange;
+
+  @override
+  void initState() {
+    super.initState();
+    _ratingRange = widget.initial.ratingRange;
+    _destination =
+        TextEditingController(text: widget.initial.destinationQuery);
+    _dateRange = widget.initial.dateRange;
+  }
+
+  @override
+  void dispose() {
+    _destination.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.only(
+        bottom: MediaQuery.of(context).viewInsets.bottom,
+        left: 20,
+        right: 20,
+        top: 20,
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text(
+                'Filters',
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+              ),
+              IconButton(
+                onPressed: () => Navigator.pop(context),
+                icon: const Icon(Icons.close),
+              ),
+            ],
+          ),
+          const Divider(),
+          const SizedBox(height: 16),
+          const Text(
+            'Destination',
+            style: TextStyle(fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 8),
+          TextField(
+            controller: _destination,
+            decoration: const InputDecoration(
+              hintText: 'Country, city, or trip name',
+              prefixIcon: Icon(Icons.location_on_outlined),
+              border: OutlineInputBorder(),
+            ),
+          ),
+          const SizedBox(height: 20),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text(
+                'Rating (daily average)',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+              Text(
+                '${_ratingRange.start.toStringAsFixed(1)} ★ – ${_ratingRange.end.toStringAsFixed(1)} ★',
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.primary,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+          RangeSlider(
+            values: _ratingRange,
+            min: 0,
+            max: 5,
+            divisions: 50,
+            labels: RangeLabels(
+              _ratingRange.start.toStringAsFixed(1),
+              _ratingRange.end.toStringAsFixed(1),
+            ),
+            onChanged: (values) => setState(() => _ratingRange = values),
+          ),
+          const Text(
+            'Trips missing some day ratings only appear when the minimum is 0.',
+            style: TextStyle(fontSize: 12),
+          ),
+          const SizedBox(height: 20),
+          const Text(
+            'Date range',
+            style: TextStyle(fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 8),
+          OutlinedButton.icon(
+            onPressed: () async {
+              final picked = await showDateRangePicker(
+                context: context,
+                firstDate: DateTime(2000),
+                lastDate: DateTime(2100),
+                initialDateRange: _dateRange,
+              );
+              if (picked != null) setState(() => _dateRange = picked);
+            },
+            icon: const Icon(Icons.calendar_month),
+            label: Text(
+              _dateRange == null
+                  ? 'Pick dates'
+                  : '${DateFormat('dd/MM/yy', 'en').format(_dateRange!.start)} – ${DateFormat('dd/MM/yy', 'en').format(_dateRange!.end)}',
+            ),
+            style: OutlinedButton.styleFrom(
+              alignment: Alignment.centerLeft,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            ),
+          ),
+          const SizedBox(height: 32),
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton(
+                  onPressed: () {
+                    Navigator.pop(
+                      context,
+                      const _MyTripsFilterState(),
+                    );
+                  },
+                  child: const Text('Clear'),
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: FilledButton(
+                  onPressed: () {
+                    Navigator.pop(
+                      context,
+                      _MyTripsFilterState(
+                        ratingRange: _ratingRange,
+                        destinationQuery: _destination.text,
+                        dateRange: _dateRange,
+                      ),
+                    );
+                  },
+                  child: const Text('Apply'),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
+        ],
       ),
     );
   }
 }
+
+
 
 class _TripPreviewDialog extends ConsumerWidget {
   const _TripPreviewDialog({required this.trip});
@@ -317,16 +461,10 @@ class _TripPreviewDialog extends ConsumerWidget {
     final featuredAsync = ref.watch(tripFeaturedDataProvider(trip.id));
     final range =
         '${DateFormat('d MMM yyyy', 'en').format(trip.startDate)} → ${DateFormat('d MMM yyyy', 'en').format(trip.endDate)}';
-    
-    final locationParts = <String>[];
-    if (trip.countries.isNotEmpty) {
-      final entry = resolveGeography(trip.countries.first);
-      locationParts.add(entry?.name ?? trip.countries.first);
-    }
-    if (trip.cities.isNotEmpty) {
-      locationParts.add(trip.cities.first);
-    }
-    final place = locationParts.join(', ');
+    final place = [
+      if (trip.countries.isNotEmpty) resolveGeography(trip.countries.first)?.name ?? trip.countries.first,
+      if (trip.cities.isNotEmpty) trip.cities.first,
+    ].join(', ');
 
     return Dialog(
       backgroundColor: Colors.transparent,
@@ -378,34 +516,11 @@ class _TripPreviewDialog extends ConsumerWidget {
                   ),
                 ),
               ),
-              Positioned(
-                top: 16,
-                left: 16,
-                child: Wrap(
-                  spacing: 4,
-                  children: trip.countries
-                      .take(4)
-                      .map(
-                        (name) {
-                          final code = resolveGeography(name)?.code;
-                          if (code == null) return const SizedBox.shrink();
-                          return ClipRRect(
-                            borderRadius: BorderRadius.circular(3),
-                            child: SizedBox(
-                              width: 32,
-                              height: 22,
-                              child: Flag.fromString(code, fit: BoxFit.cover),
-                            ),
-                          );
-                        },
-                      )
-                      .toList(),
-                ),
-              ),
+
               Padding(
                 padding: const EdgeInsets.all(24.0),
                 child: Column(
-                  mainAxisAlignment: MainAxisAlignment.end,
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     Column(
@@ -415,13 +530,42 @@ class _TripPreviewDialog extends ConsumerWidget {
                           trip.name,
                           style: const TextStyle(
                             color: Colors.white,
-                            fontSize: 32,
+                            fontSize: 28,
                             fontWeight: FontWeight.bold,
                           ),
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
                         ),
                         const SizedBox(height: 8),
+                        if (trip.averageDayRating != null)
+                          Padding(
+                            padding: const EdgeInsets.only(bottom: 8),
+                            child: Row(
+                              children: [
+                                const Icon(
+                                  Icons.star,
+                                  color: Colors.amber,
+                                  size: 20,
+                                ),
+                                const SizedBox(width: 6),
+                                Text(
+                                  trip.averageDayRating!.toStringAsFixed(1),
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                                const Text(
+                                  ' / 5 (daily average)',
+                                  style: TextStyle(
+                                    color: Colors.white70,
+                                    fontSize: 14,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
                         Row(
                           children: [
                             const Icon(
@@ -445,7 +589,6 @@ class _TripPreviewDialog extends ConsumerWidget {
                         ),
                       ],
                     ),
-                    const SizedBox(height: 16),
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
@@ -540,26 +683,33 @@ class _TripPreviewDialog extends ConsumerWidget {
 
 final _coverImagePathProvider =
     Provider.autoDispose.family<String?, Trip>((ref, trip) {
-  if (trip.coverMediaId == null) {
-    final mediaAsync = ref.watch(tripMediaProvider(trip.id));
-    return mediaAsync.maybeWhen(
-      data: (list) {
-        for (final m in list) {
-          if (m.type.name == 'photo') return m.filePath;
-        }
-        return null;
-      },
-      orElse: () => null,
-    );
-  }
   final mediaAsync = ref.watch(tripMediaProvider(trip.id));
+  final daysAsync = ref.watch(tripDaysProvider(trip.id));
+
   return mediaAsync.maybeWhen(
     data: (list) {
-      for (final m in list) {
-        if (m.id == trip.coverMediaId) return m.filePath;
+      // 1. Specific trip cover
+      if (trip.coverMediaId != null) {
+        for (final m in list) {
+          if (m.id == trip.coverMediaId) return m.filePath;
+        }
       }
+
+      // 2. Try to find the first "main image" of any day
+      final mainImageIds = daysAsync.maybeWhen(
+        data: (days) => days.map((d) => d.coverMediaId).whereType<String>().toSet(),
+        orElse: () => <String>{},
+      );
+
+      if (mainImageIds.isNotEmpty) {
+        for (final m in list) {
+          if (mainImageIds.contains(m.id)) return m.filePath;
+        }
+      }
+
+      // 3. Fallback to first photo
       for (final m in list) {
-        if (m.type.name == 'photo') return m.filePath;
+        if (m.type == MediaType.photo) return m.filePath;
       }
       return null;
     },
@@ -612,3 +762,4 @@ class _TripBackgroundSlideshowState extends State<_TripBackgroundSlideshow> {
     );
   }
 }
+

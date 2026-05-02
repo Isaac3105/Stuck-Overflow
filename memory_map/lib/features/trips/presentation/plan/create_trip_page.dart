@@ -45,13 +45,13 @@ class _CreateTripPageState extends ConsumerState<CreateTripPage> {
   Future<void> _save() async {
     if (_name.text.trim().isEmpty || _range == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Nome e período são obrigatórios.')),
+        const SnackBar(content: Text('Name and date range are required.')),
       );
       return;
     }
     if (_countries.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Seleciona pelo menos um país.')),
+        const SnackBar(content: Text('Select at least one country.')),
       );
       return;
     }
@@ -74,17 +74,17 @@ class _CreateTripPageState extends ConsumerState<CreateTripPage> {
 
   @override
   Widget build(BuildContext context) {
-    final df = DateFormat('d MMM yyyy', 'pt_PT');
+    final df = DateFormat('d MMM yyyy', 'en');
     return Scaffold(
-      appBar: AppBar(title: const Text('Nova viagem')),
+      appBar: AppBar(title: const Text('New trip')),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
           TextField(
             controller: _name,
             decoration: const InputDecoration(
-              labelText: 'Nome da viagem',
-              hintText: 'Ex: Verão na Grécia',
+              labelText: 'Trip name',
+              hintText: 'e.g. Summer in Greece',
             ),
           ),
           const SizedBox(height: 16),
@@ -93,11 +93,11 @@ class _CreateTripPageState extends ConsumerState<CreateTripPage> {
             borderRadius: BorderRadius.circular(12),
             child: InputDecorator(
               decoration: const InputDecoration(
-                labelText: 'Período',
+                labelText: 'Dates',
                 suffixIcon: Icon(Icons.calendar_month),
               ),
               child: Text(_range == null
-                  ? 'Escolhe as datas'
+                  ? 'Pick dates'
                   : '${df.format(_range!.start)} → ${df.format(_range!.end)}'),
             ),
           ),
@@ -121,7 +121,7 @@ class _CreateTripPageState extends ConsumerState<CreateTripPage> {
           FilledButton.icon(
             onPressed: _saving ? null : _save,
             icon: const Icon(Icons.check),
-            label: Text(_saving ? 'A criar…' : 'Criar viagem'),
+            label: Text(_saving ? 'Creating…' : 'Create trip'),
           ),
         ],
       ),

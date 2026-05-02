@@ -6,6 +6,7 @@ import 'package:uuid/uuid.dart';
 import '../../../core/db/database.dart';
 import '../../../core/db/database_provider.dart';
 import '../../../core/data/geography.dart';
+import '../../../core/data/countries.dart';
 import '../../../core/services/spotify_service.dart';
 
 class SpotifyRepository {
@@ -17,17 +18,27 @@ class SpotifyRepository {
   List<String> _buildSuggestionQueries({
     required String countryName,
   }) {
-    final actualName = resolveGeography(countryName)?.name ?? countryName;
-    final seeds = [actualName];
+    final entry = countryByCode(countryName) ?? kCountries.where((c) => c.nameEn == countryName).firstOrNull;
+    final nameEn = entry?.nameEn ?? countryName;
+    final namePt = entry?.namePt ?? countryName;
+
+    // Mix EN + PT terms; keep queries short for better Spotify search relevance.
+    final seeds = <String>[
+      nameEn,
+      if (namePt != nameEn) namePt,
+    ];
 
     final suffixes = <String>[
-      'hits',
-      'top hits',
       'local music',
       'traditional music',
       'folk',
+      'popular music',
+      'hits',
+      'top hits',
       'hits playlist',
       'top hits playlist',
+      'música local',
+      'música tradicional',
     ];
 
     final queries = <String>[];
