@@ -50,7 +50,7 @@ class _DayRatingSheetBodyState extends State<_DayRatingSheetBody> {
   @override
   Widget build(BuildContext context) {
     final dateLabel =
-        DateFormat("EEEE, d 'de' MMMM", 'pt_PT').format(widget.day.date);
+        DateFormat('EEEE, MMMM d', 'en').format(widget.day.date);
     return SafeArea(
       child: Padding(
         padding: const EdgeInsets.fromLTRB(24, 8, 24, 24),
@@ -99,12 +99,12 @@ class _DayRatingSheetBodyState extends State<_DayRatingSheetBody> {
                 if (widget.barrierDismissible)
                   TextButton(
                     onPressed: () => Navigator.pop(context),
-                    child: const Text('Cancelar'),
+                    child: const Text('Cancel'),
                   ),
                 Expanded(
                   child: FilledButton(
                     onPressed: () => Navigator.pop(context, _stars),
-                    child: const Text('Guardar'),
+                    child: const Text('Save'),
                   ),
                 ),
               ],

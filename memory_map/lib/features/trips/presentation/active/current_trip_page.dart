@@ -28,21 +28,21 @@ class CurrentTripPage extends ConsumerWidget {
     final currentTrip = ref.watch(currentTripProvider);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Viagem atual')),
+      appBar: AppBar(title: const Text('Current trip')),
       body: currentTrip.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(child: Text('Erro: $e')),
+        error: (e, _) => Center(child: Text('Error: $e')),
         data: (trip) {
           if (trip == null) {
             return EmptyState(
               icon: Icons.flight_takeoff_outlined,
-              title: 'Nenhuma viagem em curso',
+              title: 'No active trip',
               message:
-                  'Quando uma viagem planeada incluir o dia de hoje, ela aparecerá aqui automaticamente.',
+                  'When a planned trip includes today, it will show up here automatically.',
               action: FilledButton.icon(
                 onPressed: () => context.go('/plan'),
                 icon: const Icon(Icons.map_outlined),
-                label: const Text('Ir ao planeamento'),
+                label: const Text('Go to planner'),
               ),
             );
           }
@@ -80,7 +80,7 @@ class _CurrentTripBodyState extends ConsumerState<_CurrentTripBody> {
 
     return daysAsync.when(
       loading: () => const Center(child: CircularProgressIndicator()),
-      error: (e, _) => Center(child: Text('Erro: $e')),
+      error: (e, _) => Center(child: Text('Error: $e')),
       data: (days) {
         final now = DateTime.now();
         final day = unlockedItineraryDay(days, now);
@@ -89,9 +89,9 @@ class _CurrentTripBodyState extends ConsumerState<_CurrentTripBody> {
         if (day == null) {
           return EmptyState(
             icon: Icons.nights_stay_outlined,
-            title: 'Próximo dia em breve',
+            title: 'Next day soon',
             message:
-                'Já avaliaste o dia de hoje. O itinerário do próximo dia fica disponível amanhã no calendário.',
+                'You already rated today. The next day’s itinerary unlocks tomorrow in the calendar.',
             action: ratedToday == null
                 ? null
                 : Column(
@@ -101,7 +101,7 @@ class _CurrentTripBodyState extends ConsumerState<_CurrentTripBody> {
                         onPressed: () =>
                             _confirmUndoTodayRating(context, ratedToday),
                         icon: const Icon(Icons.undo),
-                        label: const Text('Anular avaliação de hoje'),
+                        label: const Text('Undo today’s rating'),
                       ),
                     ],
                   ),
@@ -111,7 +111,7 @@ class _CurrentTripBodyState extends ConsumerState<_CurrentTripBody> {
         final blocksAsync = ref.watch(dayBlocksProvider(day.id));
         final mediaAsync = ref.watch(dayMediaProvider(day.id));
         final dateLabel =
-            DateFormat("EEEE, d 'de' MMMM", 'pt_PT').format(day.date);
+            DateFormat('EEEE, MMMM d', 'en').format(day.date);
 
         return ListView(
           padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
@@ -121,7 +121,7 @@ class _CurrentTripBodyState extends ConsumerState<_CurrentTripBody> {
             OutlinedButton.icon(
               onPressed: () => _endDayAndRate(context, day),
               icon: const Icon(Icons.star_rate_rounded),
-              label: const Text('Terminar dia e avaliar'),
+              label: const Text('End day and rate'),
             ),
             const SizedBox(height: 10),
             Row(
@@ -130,7 +130,7 @@ class _CurrentTripBodyState extends ConsumerState<_CurrentTripBody> {
                   child: FilledButton.icon(
                     onPressed: () => _capturePhoto(context, day.id),
                     icon: const Icon(Icons.camera_alt_outlined),
-                    label: const Text('Tirar foto'),
+                    label: const Text('Take photo'),
                   ),
                 ),
               ],
@@ -142,17 +142,17 @@ class _CurrentTripBodyState extends ConsumerState<_CurrentTripBody> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Itinerário',
+                    Text('Itinerary',
                         style: Theme.of(context).textTheme.titleMedium),
                     const Divider(height: 16),
                     blocksAsync.when(
                       loading: () =>
                           const Center(child: CircularProgressIndicator()),
-                      error: (e, _) => Text('Erro: $e'),
+                      error: (e, _) => Text('Error: $e'),
                       data: (blocks) {
                         if (blocks.isEmpty) {
                           return Text(
-                            'Sem blocos para hoje. Adiciona-os no planeador.',
+                            'No blocks for today. Add them in the planner.',
                             style: Theme.of(context).textTheme.bodyMedium,
                           );
                         }
@@ -186,7 +186,7 @@ class _CurrentTripBodyState extends ConsumerState<_CurrentTripBody> {
                                       queryParameters: {'day': day.id},
                                     ).toString(),
                                   ),
-                                  child: const Text('Ver tudo no planeador'),
+                                  child: const Text('See all in planner'),
                                 ),
                               ),
                           ],
@@ -231,7 +231,7 @@ class _CurrentTripBodyState extends ConsumerState<_CurrentTripBody> {
                 foregroundColor: Theme.of(context).colorScheme.onError,
               ),
               onPressed: () => _confirmTerminateTrip(context),
-              child: const Text('TERMINAR VIAGEM'),
+              child: const Text('END TRIP'),
             ),
           ],
         );
@@ -246,9 +246,9 @@ class _CurrentTripBodyState extends ConsumerState<_CurrentTripBody> {
       final stars = await showDayRatingSheet(
         context,
         day: day,
-        title: 'Como foi este dia?',
+        title: 'How was this day?',
         subtitle:
-            'Antes de seguires para o próximo dia, avalia este dia de 1 a 5 estrelas.',
+            'Before moving on, rate this day from 1 to 5 stars.',
         barrierDismissible: false,
       );
       if (!mounted) return;
@@ -272,18 +272,18 @@ class _CurrentTripBodyState extends ConsumerState<_CurrentTripBody> {
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Anular avaliação?'),
+        title: const Text('Undo rating?'),
         content: const Text(
-          'A tua classificação deste dia será removida e voltas a ver o itinerário de hoje.',
+          'Your rating for this day will be removed and you will see today’s itinerary again.',
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(false),
-            child: const Text('Cancelar'),
+            child: const Text('Cancel'),
           ),
           FilledButton(
             onPressed: () => Navigator.of(ctx).pop(true),
-            child: const Text('Anular'),
+            child: const Text('Undo'),
           ),
         ],
       ),
@@ -292,7 +292,7 @@ class _CurrentTripBodyState extends ConsumerState<_CurrentTripBody> {
     await ref.read(tripRepositoryProvider).clearDayRating(ratedToday.id);
     if (context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Avaliação anulada.')),
+        const SnackBar(content: Text('Rating cleared.')),
       );
     }
   }
@@ -301,15 +301,15 @@ class _CurrentTripBodyState extends ConsumerState<_CurrentTripBody> {
     final stars = await showDayRatingSheet(
       context,
       day: day,
-      title: 'Avaliar este dia',
-      subtitle: 'O itinerário do dia seguinte só aparece amanhã no calendário.',
+      title: 'Rate this day',
+      subtitle: 'The next day’s itinerary only appears tomorrow in the calendar.',
       barrierDismissible: false,
     );
     if (stars == null || !context.mounted) return;
     await ref.read(tripRepositoryProvider).setDayRating(dayId: day.id, stars: stars);
     if (context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Dia guardado. Até amanhã!')),
+        const SnackBar(content: Text('Day saved. See you tomorrow!')),
       );
     }
   }
@@ -322,7 +322,7 @@ class _CurrentTripBodyState extends ConsumerState<_CurrentTripBody> {
         );
     if (media == null) {
       messenger.showSnackBar(
-        const SnackBar(content: Text('Captura cancelada ou sem permissão.')),
+        const SnackBar(content: Text('Capture canceled or permission denied.')),
       );
     }
   }
@@ -331,18 +331,18 @@ class _CurrentTripBodyState extends ConsumerState<_CurrentTripBody> {
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Terminar viagem'),
+        title: const Text('End trip'),
         content: const Text(
-          'Isto marca a viagem como concluída. Podes continuar a ver as memórias no arquivo.',
+          'This marks the trip as completed. You can still browse memories in the archive.',
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(false),
-            child: const Text('Cancelar'),
+            child: const Text('Cancel'),
           ),
           FilledButton(
             onPressed: () => Navigator.of(ctx).pop(true),
-            child: const Text('Concluir'),
+            child: const Text('Complete'),
           ),
         ],
       ),
@@ -353,7 +353,7 @@ class _CurrentTripBodyState extends ConsumerState<_CurrentTripBody> {
         .setStatus(widget.trip.id, TripStatus.completed);
     if (context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Viagem concluída.')),
+        const SnackBar(content: Text('Trip completed.')),
       );
     }
   }
@@ -586,18 +586,18 @@ class _CapturesSection extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Text('Capturas de hoje', style: Theme.of(context).textTheme.titleMedium),
+        Text("Today's captures", style: Theme.of(context).textTheme.titleMedium),
         const SizedBox(height: 8),
         mediaAsync.when(
           loading: () => const Center(child: CircularProgressIndicator()),
-          error: (e, _) => Text('Erro: $e'),
+          error: (e, _) => Text('Error: $e'),
           data: (media) {
             if (media.isEmpty) {
               return Card(
                 child: Padding(
                   padding: const EdgeInsets.all(16),
                   child: Text(
-                    'Ainda sem fotos ou áudios para hoje.',
+                    'No photos or audio for today yet.',
                     style: Theme.of(context).textTheme.bodyMedium,
                   ),
                 ),
@@ -635,7 +635,7 @@ class _CapturesSection extends StatelessWidget {
                       padding: const EdgeInsets.symmetric(vertical: 4),
                       child: AudioPlayerTile(
                         filePath: a.filePath,
-                        label: 'Áudio às ${DateFormat('HH:mm').format(a.takenAt)}',
+                        label: 'Audio at ${DateFormat('HH:mm').format(a.takenAt)}',
                       ),
                     ),
                   ),

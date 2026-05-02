@@ -139,7 +139,7 @@ class _TripPlannerPageState extends ConsumerState<TripPlannerPage> {
       ),
       body: tripAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(child: Text('Erro: $e')),
+        error: (e, _) => Center(child: Text('Error: $e')),
         data: (trip) {
           if (trip == null) return const SizedBox.shrink();
           return daysAsync.when(

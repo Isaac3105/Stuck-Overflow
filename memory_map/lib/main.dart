@@ -10,6 +10,6 @@ Future<void> main() async {
   await SystemChrome.setPreferredOrientations([
     DeviceOrientation.portraitUp,
   ]);
-  await initializeDateFormatting('pt_PT');
+  await initializeDateFormatting('en');
   runApp(const ProviderScope(child: MemoryMapApp()));
 }

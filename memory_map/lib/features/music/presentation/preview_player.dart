@@ -71,7 +71,7 @@ class _PreviewPlayerState extends State<PreviewPlayer> {
                   const SizedBox(height: 2),
                   Text(
                     widget.previewUrls.isEmpty
-                        ? 'Sem previews disponíveis'
+                        ? 'No previews available'
                         : 'Preview ${_idx + 1}/${widget.previewUrls.length}',
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
                           color: scheme.onSurfaceVariant,

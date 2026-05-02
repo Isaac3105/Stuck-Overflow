@@ -8,7 +8,7 @@ class CountryPickerField extends StatefulWidget {
     super.key,
     required this.selected,
     required this.onChanged,
-    this.label = 'Países',
+    this.label = 'Countries',
   });
 
   final List<String> selected;
@@ -40,7 +40,7 @@ class _CountryPickerFieldState extends State<CountryPickerField> {
           suffixIcon: const Icon(Icons.expand_more),
         ),
         child: widget.selected.isEmpty
-            ? const Text('Toca para escolher')
+            ? const Text('Tap to choose')
             : Wrap(
                 spacing: 6,
                 runSpacing: 6,
@@ -73,7 +73,7 @@ class _CountryChip extends StatelessWidget {
             child: Flag.fromString(code, fit: BoxFit.cover),
           ),
           const SizedBox(width: 6),
-          Text(countryNamePt(code)),
+          Text(countryNameEn(code)),
         ],
       ),
     );
@@ -113,7 +113,7 @@ class _CountrySearchSheetState extends State<_CountrySearchSheet> {
                 autofocus: true,
                 decoration: const InputDecoration(
                   prefixIcon: Icon(Icons.search),
-                  hintText: 'Pesquisar país…',
+                  hintText: 'Search country…',
                 ),
                 onChanged: (v) => setState(() => _query = v),
               ),
@@ -142,7 +142,7 @@ class _CountrySearchSheetState extends State<_CountrySearchSheet> {
                           child: Flag.fromString(c.code, fit: BoxFit.cover),
                         ),
                         const SizedBox(width: 12),
-                        Expanded(child: Text(c.namePt)),
+                        Expanded(child: Text(c.nameEn)),
                       ],
                     ),
                   );
@@ -156,7 +156,7 @@ class _CountrySearchSheetState extends State<_CountrySearchSheet> {
                 child: FilledButton(
                   onPressed: () =>
                       Navigator.of(context).pop(_selected.toList()),
-                  child: const Text('Concluído'),
+                  child: const Text('Done'),
                 ),
               ),
             ),

@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
+import '../../../../core/data/countries.dart';
 import '../../data/trip_providers.dart';
 import '../../domain/media.dart';
 import '../../domain/trip.dart';
@@ -56,7 +57,7 @@ class _MyTripsState extends ConsumerState<MyTrips> {
 
     return tripsAsync.when(
       loading: () => const Center(child: CircularProgressIndicator()),
-      error: (e, _) => Center(child: Text('Erro: $e')),
+      error: (e, _) => Center(child: Text('Error: $e')),
       data: (trips) {
         final now = DateTime.now();
         final visible = _visibleTrips(trips, now);
@@ -70,7 +71,7 @@ class _MyTripsState extends ConsumerState<MyTrips> {
                   children: [
                     Expanded(
                       child: SearchBar(
-                        hintText: 'Pesquisar viagens...',
+                        hintText: 'Search trips...',
                         leading: const Icon(Icons.search),
                         padding: const WidgetStatePropertyAll(
                           EdgeInsets.symmetric(horizontal: 16),
@@ -95,7 +96,7 @@ class _MyTripsState extends ConsumerState<MyTrips> {
               ),
               Expanded(
                 child: visible.isEmpty
-                    ? const Center(child: Text('Sem viagens concluídas.'))
+                    ? const Center(child: Text('No completed trips.'))
                     : GridView.builder(
                         padding: const EdgeInsets.symmetric(horizontal: 16),
                         physics: const ClampingScrollPhysics(),
@@ -150,23 +151,23 @@ class _MyTripsState extends ConsumerState<MyTrips> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               const Text(
-                'Ordenar por',
+                'Sort by',
                 style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 16),
               ListTile(
                 leading: const Icon(Icons.calendar_today),
-                title: const Text('Data (mais recente)'),
+                title: const Text('Date (newest first)'),
                 onTap: () => Navigator.pop(ctx, _MyTripsSort.byDateDesc),
               ),
               ListTile(
                 leading: const Icon(Icons.language),
-                title: const Text('País'),
+                title: const Text('Country'),
                 onTap: () => Navigator.pop(ctx, _MyTripsSort.byCountry),
               ),
               ListTile(
                 leading: const Icon(Icons.star_outline),
-                title: const Text('Classificação'),
+                title: const Text('Rating'),
                 onTap: () => Navigator.pop(ctx, _MyTripsSort.byRatingDesc),
               ),
             ],
@@ -289,7 +290,7 @@ class _FilterSheetBodyState extends State<_FilterSheetBody> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               const Text(
-                'Filtros',
+                'Filters',
                 style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
               ),
               IconButton(
@@ -301,14 +302,14 @@ class _FilterSheetBodyState extends State<_FilterSheetBody> {
           const Divider(),
           const SizedBox(height: 16),
           const Text(
-            'Destino',
+            'Destination',
             style: TextStyle(fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 8),
           TextField(
             controller: _destination,
             decoration: const InputDecoration(
-              hintText: 'País, cidade ou nome da viagem',
+              hintText: 'Country, city, or trip name',
               prefixIcon: Icon(Icons.location_on_outlined),
               border: OutlineInputBorder(),
             ),
@@ -318,7 +319,7 @@ class _FilterSheetBodyState extends State<_FilterSheetBody> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               const Text(
-                'Classificação (média dos dias)',
+                'Rating (daily average)',
                 style: TextStyle(fontWeight: FontWeight.bold),
               ),
               Text(
@@ -342,12 +343,12 @@ class _FilterSheetBodyState extends State<_FilterSheetBody> {
             onChanged: (values) => setState(() => _ratingRange = values),
           ),
           const Text(
-            'Viagens sem todas as avaliações dos dias só aparecem se o mínimo for 0.',
+            'Trips missing some day ratings only appear when the minimum is 0.',
             style: TextStyle(fontSize: 12),
           ),
           const SizedBox(height: 20),
           const Text(
-            'Intervalo de datas',
+            'Date range',
             style: TextStyle(fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 8),
@@ -364,8 +365,8 @@ class _FilterSheetBodyState extends State<_FilterSheetBody> {
             icon: const Icon(Icons.calendar_month),
             label: Text(
               _dateRange == null
-                  ? 'Escolher datas'
-                  : '${DateFormat('dd/MM/yy').format(_dateRange!.start)} – ${DateFormat('dd/MM/yy').format(_dateRange!.end)}',
+                  ? 'Pick dates'
+                  : '${DateFormat('dd/MM/yy', 'en').format(_dateRange!.start)} – ${DateFormat('dd/MM/yy', 'en').format(_dateRange!.end)}',
             ),
             style: OutlinedButton.styleFrom(
               alignment: Alignment.centerLeft,
@@ -383,7 +384,7 @@ class _FilterSheetBodyState extends State<_FilterSheetBody> {
                       const _MyTripsFilterState(),
                     );
                   },
-                  child: const Text('Limpar'),
+                  child: const Text('Clear'),
                 ),
               ),
               const SizedBox(width: 16),
@@ -399,7 +400,7 @@ class _FilterSheetBodyState extends State<_FilterSheetBody> {
                       ),
                     );
                   },
-                  child: const Text('Aplicar'),
+                  child: const Text('Apply'),
                 ),
               ),
             ],
@@ -419,9 +420,9 @@ class _TripCard extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final coverPath = ref.watch(_coverImagePathProvider(trip));
     final range =
-        '${DateFormat('dd/MM/yy').format(trip.startDate)} - ${DateFormat('dd/MM/yy').format(trip.endDate)}';
+        '${DateFormat('dd/MM/yy', 'en').format(trip.startDate)} - ${DateFormat('dd/MM/yy', 'en').format(trip.endDate)}';
     final subtitle = [
-      if (trip.countries.isNotEmpty) trip.countries.first,
+      if (trip.countries.isNotEmpty) countryNameEn(trip.countries.first),
       if (trip.cities.isNotEmpty) trip.cities.first,
     ].join(', ');
 
@@ -517,8 +518,8 @@ class _TripCard extends ConsumerWidget {
                           Expanded(
                             child: Text(
                               trip.averageDayRating != null
-                                  ? '${NumberFormat('#0.0', 'pt_PT').format(trip.averageDayRating)} / 5'
-                                  : 'Sem classificação',
+                                  ? '${NumberFormat('#0.0', 'en').format(trip.averageDayRating)} / 5'
+                                  : 'No rating',
                               style: TextStyle(
                                 color: trip.averageDayRating != null
                                     ? Colors.white
@@ -563,9 +564,9 @@ class _TripPreviewDialog extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final featuredAsync = ref.watch(tripFeaturedDataProvider(trip.id));
     final range =
-        '${DateFormat('d MMM yyyy', 'pt_PT').format(trip.startDate)} → ${DateFormat('d MMM yyyy', 'pt_PT').format(trip.endDate)}';
+        '${DateFormat('d MMM yyyy', 'en').format(trip.startDate)} → ${DateFormat('d MMM yyyy', 'en').format(trip.endDate)}';
     final place = [
-      if (trip.countries.isNotEmpty) trip.countries.first,
+      if (trip.countries.isNotEmpty) countryNameEn(trip.countries.first),
       if (trip.cities.isNotEmpty) trip.cities.first,
     ].join(', ');
 
@@ -659,7 +660,7 @@ class _TripPreviewDialog extends ConsumerWidget {
                                   ),
                                 ),
                                 const Text(
-                                  ' / 5 (média dos dias)',
+                                  ' / 5 (daily average)',
                                   style: TextStyle(
                                     color: Colors.white70,
                                     fontSize: 14,
