@@ -1,6 +1,6 @@
 import 'package:flutter/foundation.dart';
 
-enum MediaType { photo, audio }
+enum MediaType { photo, video, audio }
 
 @immutable
 class MediaItem {

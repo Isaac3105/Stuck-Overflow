@@ -39,7 +39,10 @@ class TimelinePage extends ConsumerWidget {
               }
 
               final photos =
-                  media.where((m) => m.type == MediaType.photo).toList();
+                  media
+                      .where((m) =>
+                          m.type == MediaType.photo || m.type == MediaType.video)
+                      .toList();
               final audios =
                   media.where((m) => m.type == MediaType.audio).toList();
 
@@ -49,7 +52,7 @@ class TimelinePage extends ConsumerWidget {
                   _SectionTitle(
                     title: '',
                     subtitle:
-                        '${media.length} items · ${photos.length} photos · ${audios.length} audios',
+                        '${media.length} items · ${photos.where((m) => m.type == MediaType.photo).length} photos · ${photos.where((m) => m.type == MediaType.video).length} videos · ${audios.length} audios',
                   ),
                   const SizedBox(height: 8),
                   ...media.map((m) {
@@ -115,7 +118,9 @@ class _MemoryCard extends StatelessWidget {
                 Icon(
                   media.type == MediaType.photo
                       ? Icons.photo_outlined
-                      : Icons.mic_none,
+                      : media.type == MediaType.video
+                          ? Icons.videocam_outlined
+                          : Icons.mic_none,
                   color: scheme.primary,
                 ),
                 const SizedBox(width: 8),
@@ -155,16 +160,20 @@ class _MemoryCard extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 10),
-            if (media.type == MediaType.photo)
+            if (media.type == MediaType.photo || media.type == MediaType.video)
               SizedBox(
                 height: 200,
                 width: double.infinity,
-                child: PhotoThumbnail(
+                child: MediaThumbnail(
+                  type: media.type,
                   filePath: media.filePath,
                   borderRadius: 14,
                   onTap: () => Navigator.of(context).push(
                     MaterialPageRoute(
-                      builder: (_) => PhotoViewerPage(filePath: media.filePath),
+                      builder: (_) => MediaViewerPage(
+                        type: media.type,
+                        filePath: media.filePath,
+                      ),
                     ),
                   ),
                 ),

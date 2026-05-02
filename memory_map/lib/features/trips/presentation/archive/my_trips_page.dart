@@ -123,11 +123,11 @@ class _MyTripsState extends ConsumerState<MyTrips> {
                             itemCount: chronologicalOrdered.length,
                             itemBuilder: (context, index) {
                               final t = chronologicalOrdered[index];
-                              final coverPath =
-                                  ref.watch(tripCoverImagePathProvider(t));
+                              final coverMedia =
+                                  ref.watch(tripCoverMediaProvider(t));
                               return TripCard(
                                 trip: t,
-                                coverImagePath: coverPath,
+                                coverMedia: coverMedia,
                                 onTap: () => showDialog(
                                   context: context,
                                   builder: (_) =>
@@ -269,10 +269,10 @@ class _MyTripsState extends ConsumerState<MyTrips> {
             delegate: SliverChildBuilderDelegate(
               (ctx, j) {
                 final t = g.trips[j];
-                final coverPath = ref.watch(tripCoverImagePathProvider(t));
+                final coverMedia = ref.watch(tripCoverMediaProvider(t));
                 return TripCard(
                   trip: t,
-                  coverImagePath: coverPath,
+                  coverMedia: coverMedia,
                   onTap: () => showDialog(
                     context: context,
                     builder: (_) => _TripPreviewDialog(trip: t),
