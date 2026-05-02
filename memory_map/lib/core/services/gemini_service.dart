@@ -45,7 +45,8 @@ Rules:
 - Return exactly $count items
 - category must be ONE of: "food", "landmark", "museum", "experience", "nightlife", "nature"
 - suggested_time_slot format: "HH:MM-HH:MM" (e.g., "09:00-11:00")
-- name must not be empty
+- name must be very short (max 3-4 words)
+- why_typical must be extremely concise (max 1 short sentence, max 10 words)
 - All fields are required
 - Return ONLY the JSON array, nothing else
 ''';

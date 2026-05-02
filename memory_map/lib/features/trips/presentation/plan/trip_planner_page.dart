@@ -471,27 +471,33 @@ class _GeminiSuggestions extends ConsumerWidget {
                       style: Theme.of(context).textTheme.bodySmall,
                     );
                   }
-                  return Column(
-                    children: items.take(6).map((p) {
-                      return ListTile(
-                        contentPadding: EdgeInsets.zero,
-                        title: Text(p.name),
-                        subtitle: Text(p.whyTypical),
-                        trailing: const Icon(Icons.add),
-                        onTap: () {
-                          // Pre-fill a new activity block
-                          showModalBottomSheet<bool>(
-                            context: context,
-                            isScrollControlled: true,
-                            builder: (_) => ActivityBlockForm(
-                              dayId: dayId,
-                              prefillTitle: p.name,
-                              prefillNotes: '${p.category} · ${p.suggestedTimeSlot}\n${p.whyTypical}',
-                            ),
-                          );
-                        },
-                      );
-                    }).toList(),
+                  return ConstrainedBox(
+                    constraints: const BoxConstraints(maxHeight: 220),
+                    child: ListView.builder(
+                      shrinkWrap: true,
+                      itemCount: items.length,
+                      itemBuilder: (context, index) {
+                        final p = items[index];
+                        return ListTile(
+                          contentPadding: EdgeInsets.zero,
+                          title: Text(p.name),
+                          subtitle: Text(p.whyTypical),
+                          trailing: const Icon(Icons.add),
+                          onTap: () {
+                            // Pre-fill a new activity block
+                            showModalBottomSheet<bool>(
+                              context: context,
+                              isScrollControlled: true,
+                              builder: (_) => ActivityBlockForm(
+                                dayId: dayId,
+                                prefillTitle: p.name,
+                                prefillNotes: '${p.category} · ${p.suggestedTimeSlot}\n${p.whyTypical}',
+                              ),
+                            );
+                          },
+                        );
+                      },
+                    ),
                   );
                 },
               ),
