@@ -14,7 +14,7 @@ import '../../domain/trip.dart';
 import '../home/home_providers.dart';
 import '../home/story_player_page.dart';
 
-enum _MyTripsSort { byDateDesc, byRatingDesc, byCountry }
+enum _MyTripsSort { date, rating, country }
 
 class _MyTripsFilterState {
   const _MyTripsFilterState({
@@ -37,7 +37,8 @@ class MyTrips extends ConsumerStatefulWidget {
 
 class _MyTripsState extends ConsumerState<MyTrips> {
   String _searchQuery = '';
-  _MyTripsSort _sort = _MyTripsSort.byDateDesc;
+  _MyTripsSort _sort = _MyTripsSort.date;
+  bool _sortAscending = false;
   _MyTripsFilterState _filters = const _MyTripsFilterState();
 
   List<Trip> _visibleTrips(List<Trip> all, DateTime now) {
@@ -48,7 +49,7 @@ class _MyTripsState extends ConsumerState<MyTrips> {
         .where((t) => _matchesDestination(t, _filters.destinationQuery))
         .where((t) => _matchesDateRange(t, _filters.dateRange))
         .toList(growable: false);
-    return _sortTrips(completed, _sort);
+    return _sortTrips(completed, _sort, _sortAscending);
   }
 
   @override
@@ -157,25 +158,43 @@ class _MyTripsState extends ConsumerState<MyTrips> {
               const SizedBox(height: 16),
               ListTile(
                 leading: const Icon(Icons.calendar_today),
-                title: const Text('Date (newest first)'),
-                onTap: () => Navigator.pop(ctx, _MyTripsSort.byDateDesc),
+                title: const Text('Date'),
+                trailing: _sort == _MyTripsSort.date
+                    ? Icon(_sortAscending ? Icons.arrow_upward : Icons.arrow_downward)
+                    : null,
+                onTap: () => Navigator.pop(ctx, _MyTripsSort.date),
               ),
               ListTile(
                 leading: const Icon(Icons.language),
                 title: const Text('Country'),
-                onTap: () => Navigator.pop(ctx, _MyTripsSort.byCountry),
+                trailing: _sort == _MyTripsSort.country
+                    ? Icon(_sortAscending ? Icons.arrow_upward : Icons.arrow_downward)
+                    : null,
+                onTap: () => Navigator.pop(ctx, _MyTripsSort.country),
               ),
               ListTile(
                 leading: const Icon(Icons.star_outline),
                 title: const Text('Rating'),
-                onTap: () => Navigator.pop(ctx, _MyTripsSort.byRatingDesc),
+                trailing: _sort == _MyTripsSort.rating
+                    ? Icon(_sortAscending ? Icons.arrow_upward : Icons.arrow_downward)
+                    : null,
+                onTap: () => Navigator.pop(ctx, _MyTripsSort.rating),
               ),
             ],
           ),
         );
       },
     );
-    if (chosen != null && mounted) setState(() => _sort = chosen);
+    if (chosen != null && mounted) {
+      setState(() {
+        if (_sort == chosen) {
+          _sortAscending = !_sortAscending;
+        } else {
+          _sort = chosen;
+          _sortAscending = chosen == _MyTripsSort.country;
+        }
+      });
+    }
   }
 
   Future<void> _showFilterSheet(BuildContext context) async {
@@ -193,22 +212,30 @@ class _MyTripsState extends ConsumerState<MyTrips> {
   }
 }
 
-List<Trip> _sortTrips(List<Trip> trips, _MyTripsSort sort) {
+List<Trip> _sortTrips(List<Trip> trips, _MyTripsSort sort, bool ascending) {
   final out = [...trips];
   switch (sort) {
-    case _MyTripsSort.byDateDesc:
-      out.sort((a, b) => b.endDate.compareTo(a.endDate));
-      break;
-    case _MyTripsSort.byRatingDesc:
+    case _MyTripsSort.date:
       out.sort((a, b) {
-        final ba = b.averageDayRating ?? -1;
-        final aa = a.averageDayRating ?? -1;
-        return ba.compareTo(aa);
+        final cmp = a.endDate.compareTo(b.endDate);
+        return ascending ? cmp : -cmp;
       });
       break;
-    case _MyTripsSort.byCountry:
-      out.sort((a, b) => (a.countries.isEmpty ? '' : a.countries.first)
-          .compareTo(b.countries.isEmpty ? '' : b.countries.first));
+    case _MyTripsSort.rating:
+      out.sort((a, b) {
+        final aa = a.averageDayRating ?? -1;
+        final ba = b.averageDayRating ?? -1;
+        final cmp = aa.compareTo(ba);
+        return ascending ? cmp : -cmp;
+      });
+      break;
+    case _MyTripsSort.country:
+      out.sort((a, b) {
+        final ac = a.countries.isEmpty ? '' : a.countries.first;
+        final bc = b.countries.isEmpty ? '' : b.countries.first;
+        final cmp = ac.compareTo(bc);
+        return ascending ? cmp : -cmp;
+      });
       break;
   }
   return out;
