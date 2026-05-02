@@ -5,6 +5,7 @@ import 'package:uuid/uuid.dart';
 
 import '../../../core/db/database.dart';
 import '../../../core/db/database_provider.dart';
+import '../../../core/data/geography.dart';
 import '../../../core/data/countries.dart';
 import '../../../core/services/spotify_service.dart';
 
@@ -15,11 +16,11 @@ class SpotifyRepository {
   static const _uuid = Uuid();
 
   List<String> _buildSuggestionQueries({
-    required String countryCode,
+    required String countryName,
   }) {
-    final c = countryByCode(countryCode);
-    final nameEn = c?.nameEn ?? countryCode;
-    final namePt = c?.namePt ?? countryCode;
+    final entry = countryByCode(countryName) ?? kCountries.where((c) => c.nameEn == countryName).firstOrNull;
+    final nameEn = entry?.nameEn ?? countryName;
+    final namePt = entry?.namePt ?? countryName;
 
     // Mix EN + PT terms; keep queries short for better Spotify search relevance.
     final seeds = <String>[
@@ -47,7 +48,7 @@ class SpotifyRepository {
       }
     }
     // Backward compatible fallback for short lists / unknown codes.
-    queries.add('$countryCode local playlist');
+    queries.add('$countryName local playlist');
 
     // De-dupe while preserving order.
     final seen = <String>{};
@@ -55,11 +56,11 @@ class SpotifyRepository {
   }
 
   Future<List<SpotifyPlaylist>> suggestPlaylists({
-    required String countryCode,
+    required String countryName,
     int limit = 3,
   }) async {
     // Run multiple queries, then de-dup by Spotify playlist id.
-    final queries = _buildSuggestionQueries(countryCode: countryCode);
+    final queries = _buildSuggestionQueries(countryName: countryName);
     final byId = <String, SpotifyPlaylist>{};
 
     for (final q in queries) {
@@ -76,7 +77,7 @@ class SpotifyRepository {
   /// Stores the selected playlist and associates it with the trip.
   Future<PlaylistRow> selectPlaylistForTrip({
     required String tripId,
-    required String countryCode,
+    required String countryName,
     required SpotifyPlaylist playlist,
   }) async {
     return _db.transaction(() async {
@@ -92,7 +93,7 @@ class SpotifyRepository {
                   externalId: playlist.id,
                   name: playlist.name,
                   coverUrl: Value(playlist.imageUrl),
-                  country: countryCode,
+                  country: countryName,
                   deepLink: Value(playlist.deepLink),
                 ));
             return (_db.select(_db.playlists)..where((t) => t.id.equals(id)))
@@ -204,4 +205,3 @@ final spotifyRepositoryProvider = Provider<SpotifyRepository>((ref) {
     ref.watch(spotifyServiceProvider),
   );
 });
-
