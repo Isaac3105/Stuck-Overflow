@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../../../core/data/cities.dart';
+import '../../../../core/data/geography.dart';
 
 class CitiesField extends StatefulWidget {
   const CitiesField({
@@ -119,7 +119,14 @@ class _CitySearchSheetState extends State<_CitySearchSheet> {
 
   @override
   Widget build(BuildContext context) {
-    final all = citiesForCountries(widget.countryCodes);
+    final allSet = <String>{};
+    for (final c in widget.countryCodes) {
+      final entry = resolveGeography(c);
+      if (entry != null) {
+        allSet.addAll(entry.districts);
+      }
+    }
+    final all = allSet.toList()..sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
     final filtered = all
         .where((c) => c.toLowerCase().contains(_query.toLowerCase().trim()))
         .toList(growable: false);
