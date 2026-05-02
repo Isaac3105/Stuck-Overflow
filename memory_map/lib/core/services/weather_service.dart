@@ -72,6 +72,45 @@ class WeatherService {
       return null;
     }
   }
+
+  Future<WeatherSnapshot?> fetchHistorical({
+    required double latitude,
+    required double longitude,
+    required DateTime date,
+  }) async {
+    try {
+      final dateStr = '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+      final r = await _dio.get<Map<String, dynamic>>(
+        'https://archive-api.open-meteo.com/v1/archive',
+        queryParameters: {
+          'latitude': latitude,
+          'longitude': longitude,
+          'start_date': dateStr,
+          'end_date': dateStr,
+          'daily': 'weather_code,temperature_2m_max',
+          'timezone': 'auto',
+        },
+      );
+      final data = r.data;
+      if (data == null) return null;
+      final daily = data['daily'] as Map<String, dynamic>?;
+      if (daily == null) return null;
+      
+      final temps = daily['temperature_2m_max'] as List?;
+      final codes = daily['weather_code'] as List?;
+      
+      final temp = (temps != null && temps.isNotEmpty) ? (temps.first as num).toDouble() : 0.0;
+      final code = (codes != null && codes.isNotEmpty) ? (codes.first as num).toInt() : 0;
+      
+      return WeatherSnapshot(
+        temperatureC: temp,
+        code: code,
+        description: _descriptionForCode(code),
+      );
+    } catch (_) {
+      return null;
+    }
+  }
 }
 
 final dioProvider = Provider<Dio>((_) {

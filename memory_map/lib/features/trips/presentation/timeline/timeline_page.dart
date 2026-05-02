@@ -170,7 +170,7 @@ class _MemoryCard extends StatelessWidget {
             else
               AudioPlayerTile(
                 filePath: media.filePath,
-                label: 'Audio',
+                label: 'recorded at ${DateFormat('HH:mm').format(media.takenAt)}',
               ),
           ],
         ),

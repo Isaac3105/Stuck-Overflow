@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/trip_providers.dart';
 import '../../domain/activity_block.dart';
+import '../widgets/shake_widget.dart';
 
 class ActivityBlockForm extends ConsumerStatefulWidget {
   const ActivityBlockForm({
@@ -29,6 +30,10 @@ class _ActivityBlockFormState extends ConsumerState<ActivityBlockForm> {
   late TimeOfDay _start;
   late TimeOfDay _end;
   bool _saving = false;
+
+  final _titleShakeKey = GlobalKey<ShakeWidgetState>();
+  final _buttonShakeKey = GlobalKey<ShakeWidgetState>();
+  String? _titleError;
 
   @override
   void initState() {
@@ -83,9 +88,9 @@ class _ActivityBlockFormState extends ConsumerState<ActivityBlockForm> {
 
   Future<void> _save() async {
     if (_title.text.trim().isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('O título é obrigatório.')),
-      );
+      setState(() => _titleError = 'The title is required.');
+      _titleShakeKey.currentState?.shake();
+      _buttonShakeKey.currentState?.shake();
       return;
     }
     setState(() => _saving = true);
@@ -118,6 +123,21 @@ class _ActivityBlockFormState extends ConsumerState<ActivityBlockForm> {
     } finally {
       if (mounted) setState(() => _saving = false);
     }
+  }
+
+  Widget _buildLabel(String label, bool mandatory) {
+    return Text.rich(
+      TextSpan(
+        children: [
+          TextSpan(text: label),
+          if (mandatory)
+            const TextSpan(
+              text: ' *',
+              style: TextStyle(color: Colors.red),
+            ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -177,11 +197,18 @@ class _ActivityBlockFormState extends ConsumerState<ActivityBlockForm> {
               ],
             ),
             const SizedBox(height: 12),
-            TextField(
-              controller: _title,
-              decoration: const InputDecoration(
-                labelText: 'Title',
-                hintText: 'e.g. Colosseum visit',
+            ShakeWidget(
+              key: _titleShakeKey,
+              child: TextField(
+                controller: _title,
+                onChanged: (_) {
+                  if (_titleError != null) setState(() => _titleError = null);
+                },
+                decoration: InputDecoration(
+                  label: _buildLabel('Title', true),
+                  hintText: 'e.g. Colosseum visit',
+                  errorText: _titleError,
+                ),
               ),
             ),
             const SizedBox(height: 12),
@@ -213,9 +240,12 @@ class _ActivityBlockFormState extends ConsumerState<ActivityBlockForm> {
                   ),
                 if (isEdit) const SizedBox(width: 12),
                 Expanded(
-                  child: FilledButton(
-                    onPressed: _saving ? null : _save,
-                    child: Text(_saving ? 'Saving…' : 'Save'),
+                  child: ShakeWidget(
+                    key: _buttonShakeKey,
+                    child: FilledButton(
+                      onPressed: _saving ? null : _save,
+                      child: Text(_saving ? 'Saving…' : 'Save'),
+                    ),
                   ),
                 ),
               ],

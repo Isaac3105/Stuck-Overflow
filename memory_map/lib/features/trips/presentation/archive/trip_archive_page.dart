@@ -12,6 +12,8 @@ import '../../data/trip_providers.dart';
 import '../../domain/day.dart';
 import '../../domain/media.dart';
 import '../widgets/activity_block_tile.dart';
+import 'trip_gallery_page.dart';
+import '../../../../core/services/weather_service.dart';
 
 class TripArchivePage extends ConsumerWidget {
   const TripArchivePage({super.key, required this.tripId});
@@ -53,6 +55,21 @@ class TripArchivePage extends ConsumerWidget {
                             '${DateFormat('d MMM yyyy', 'en').format(trip.startDate)} → '
                             '${DateFormat('d MMM yyyy', 'en').format(trip.endDate)}',
                             style: Theme.of(context).textTheme.bodyMedium,
+                          ),
+                          const SizedBox(height: 12),
+                          SizedBox(
+                            width: double.infinity,
+                            child: FilledButton.icon(
+                              onPressed: () {
+                                Navigator.of(context).push(
+                                  MaterialPageRoute(
+                                    builder: (_) => TripGalleryPage(tripId: tripId),
+                                  ),
+                                );
+                              },
+                              icon: const Icon(Icons.collections_outlined),
+                              label: const Text('See gallery'),
+                            ),
                           ),
                           const SizedBox(height: 12),
                           playlistAsync.when(
@@ -155,7 +172,13 @@ class _DaySection extends ConsumerWidget {
             ],
           ),
           const SizedBox(height: 6),
-          _DayRatingRow(rating: day.dayRating),
+          Row(
+            children: [
+              _DayRatingRow(rating: day.dayRating),
+              const Spacer(),
+              _DayWeatherRow(day: day),
+            ],
+          ),
           const SizedBox(height: 8),
           blocksAsync.maybeWhen(
             data: (blocks) {
@@ -209,14 +232,16 @@ class _DaySection extends ConsumerWidget {
                       ),
                     if (audios.isNotEmpty) ...[
                       const SizedBox(height: 8),
-                      ...audios.map((a) => Padding(
-                            padding: const EdgeInsets.symmetric(vertical: 4),
-                            child: AudioPlayerTile(
-                              filePath: a.filePath,
-                              label:
-                                  'Audio at ${DateFormat('HH:mm').format(a.takenAt)}',
-                            ),
-                          )),
+                      ...audios.map((a) {
+                        return Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 4),
+                          child: AudioPlayerTile(
+                            filePath: a.filePath,
+                            label:
+                                'recorded at ${DateFormat('HH:mm').format(a.takenAt)}',
+                          ),
+                        );
+                      }),
                     ],
                   ],
                 ),
@@ -268,6 +293,65 @@ class _DayRatingRow extends StatelessWidget {
     );
   }
 }
+
+class _DayWeatherRow extends ConsumerWidget {
+  const _DayWeatherRow({required this.day});
+  final TripDay day;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final tripAsync = ref.watch(tripProvider(day.tripId));
+    return tripAsync.maybeWhen(
+      data: (trip) {
+        if (trip == null) return const SizedBox.shrink();
+        final coords = coordsForCountries(trip.countries);
+        if (coords == null) return const SizedBox.shrink();
+
+        final weatherAsync = ref.watch(_historicalWeatherProvider((
+          lat: coords.lat,
+          lng: coords.lng,
+          date: day.date,
+        )));
+
+        return weatherAsync.when(
+          loading: () => const SizedBox(
+            width: 14,
+            height: 14,
+            child: CircularProgressIndicator(strokeWidth: 2),
+          ),
+          error: (e, _) => const SizedBox.shrink(),
+          data: (w) {
+            if (w == null) return const SizedBox.shrink();
+            return Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(w.emoji, style: const TextStyle(fontSize: 16)),
+                const SizedBox(width: 4),
+                Text(
+                  '${w.temperatureC.toStringAsFixed(0)}°C',
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                ),
+              ],
+            );
+          },
+        );
+      },
+      orElse: () => const SizedBox.shrink(),
+    );
+  }
+}
+
+final _historicalWeatherProvider = FutureProvider.autoDispose
+    .family<WeatherSnapshot?, ({double lat, double lng, DateTime date})>(
+        (ref, args) {
+  return ref.watch(weatherServiceProvider).fetchHistorical(
+        latitude: args.lat,
+        longitude: args.lng,
+        date: args.date,
+      );
+});
 
 final _selectedPlaylistProviderForTrip =
     StreamProvider.autoDispose.family((ref, String tripId) {

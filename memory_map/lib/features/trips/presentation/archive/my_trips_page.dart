@@ -579,18 +579,69 @@ class _FilterSheetBodyState extends State<_FilterSheetBody> {
   }
 }
 
-class _TripPreviewDialog extends ConsumerWidget {
+class _TripPreviewDialog extends ConsumerStatefulWidget {
   const _TripPreviewDialog({required this.trip});
   final Trip trip;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final featuredAsync = ref.watch(tripFeaturedDataProvider(trip.id));
+  ConsumerState<_TripPreviewDialog> createState() => _TripPreviewDialogState();
+}
+
+class _TripPreviewDialogState extends ConsumerState<_TripPreviewDialog> {
+  bool _deleting = false;
+
+  Future<void> _handleDelete() async {
+    if (_deleting) return;
+
+    final tripId = widget.trip.id;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Delete trip'),
+        content: const Text(
+          'This action removes the trip, days, blocks, and associated media. Are you sure?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+
+    setState(() => _deleting = true);
+
+    try {
+      // Close the preview dialog first
+      if (mounted) Navigator.pop(context);
+      await ref.read(tripRepositoryProvider).deleteTrip(tripId);
+    } catch (e) {
+      if (mounted) {
+        setState(() => _deleting = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error deleting trip: $e')),
+        );
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final featuredAsync = ref.watch(tripFeaturedDataProvider(widget.trip.id));
     final range =
-        '${DateFormat('d MMM yyyy', 'en').format(trip.startDate)} → ${DateFormat('d MMM yyyy', 'en').format(trip.endDate)}';
+        '${DateFormat('d MMM yyyy', 'en').format(widget.trip.startDate)} → ${DateFormat('d MMM yyyy', 'en').format(widget.trip.endDate)}';
     final place = [
-      if (trip.countries.isNotEmpty) resolveGeography(trip.countries.first)?.name ?? trip.countries.first,
-      if (trip.cities.isNotEmpty) trip.cities.first,
+      if (widget.trip.countries.isNotEmpty)
+        resolveGeography(widget.trip.countries.first)?.name ??
+            widget.trip.countries.first,
+      if (widget.trip.cities.isNotEmpty) widget.trip.cities.first,
     ].join(', ');
 
     return Dialog(
@@ -632,18 +683,35 @@ class _TripPreviewDialog extends ConsumerWidget {
               Positioned(
                 top: 16,
                 right: 16,
-                child: Container(
-                  decoration: const BoxDecoration(
-                    color: Colors.black26,
-                    shape: BoxShape.circle,
-                  ),
-                  child: IconButton(
-                    onPressed: () => Navigator.pop(context),
-                    icon: const Icon(Icons.close, color: Colors.white),
-                  ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      decoration: const BoxDecoration(
+                        color: Colors.black26,
+                        shape: BoxShape.circle,
+                      ),
+                      child: IconButton(
+                        onPressed: _handleDelete,
+                        icon: const Icon(Icons.delete_outline, color: Colors.white),
+                        tooltip: 'Delete trip',
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Container(
+                      decoration: const BoxDecoration(
+                        color: Colors.black26,
+                        shape: BoxShape.circle,
+                      ),
+                      child: IconButton(
+                        onPressed: () => Navigator.pop(context),
+                        icon: const Icon(Icons.close, color: Colors.white),
+                        tooltip: 'Close',
+                      ),
+                    ),
+                  ],
                 ),
               ),
-
               Padding(
                 padding: const EdgeInsets.all(24.0),
                 child: Column(
@@ -654,7 +722,7 @@ class _TripPreviewDialog extends ConsumerWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          trip.name,
+                          widget.trip.name,
                           style: const TextStyle(
                             color: Colors.white,
                             fontSize: 28,
@@ -664,7 +732,7 @@ class _TripPreviewDialog extends ConsumerWidget {
                           overflow: TextOverflow.ellipsis,
                         ),
                         const SizedBox(height: 8),
-                        if (trip.averageDayRating != null)
+                        if (widget.trip.averageDayRating != null)
                           Padding(
                             padding: const EdgeInsets.only(bottom: 8),
                             child: Row(
@@ -676,7 +744,7 @@ class _TripPreviewDialog extends ConsumerWidget {
                                 ),
                                 const SizedBox(width: 6),
                                 Text(
-                                  trip.averageDayRating!.toStringAsFixed(1),
+                                  widget.trip.averageDayRating!.toStringAsFixed(1),
                                   style: const TextStyle(
                                     color: Colors.white,
                                     fontSize: 18,
@@ -777,7 +845,7 @@ class _TripPreviewDialog extends ConsumerWidget {
                         OutlinedButton(
                           onPressed: () {
                             Navigator.pop(context);
-                            context.push('/archive/${trip.id}');
+                            context.push('/archive/${widget.trip.id}');
                           },
                           style: OutlinedButton.styleFrom(
                             side: const BorderSide(color: Colors.white70),
