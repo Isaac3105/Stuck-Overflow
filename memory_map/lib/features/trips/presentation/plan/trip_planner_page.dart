@@ -146,8 +146,20 @@ class _TripPlannerPageState extends ConsumerState<TripPlannerPage> {
       appBar: AppBar(
         scrolledUnderElevation: 0,
         title: tripAsync.maybeWhen(
-          data: (t) => Text(t?.name ?? ''),
-          orElse: () => const Text('Trip'),
+          data: (t) => Text(
+            t?.name ?? '',
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w600,
+                ),
+          ),
+          orElse: () => Text(
+            'Trip',
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w600,
+                ),
+          ),
         ),
         actions: [
           Builder(

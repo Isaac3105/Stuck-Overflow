@@ -123,7 +123,14 @@ class _CreateTripPageState extends ConsumerState<CreateTripPage> {
   Widget build(BuildContext context) {
     final df = DateFormat('d MMM yyyy', 'en');
     return Scaffold(
-      appBar: AppBar(title: const Text('New trip')),
+      appBar: AppBar(
+        title: Text(
+          'New trip',
+          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w600,
+              ),
+        ),
+      ),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [

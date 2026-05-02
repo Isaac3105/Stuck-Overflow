@@ -16,7 +16,12 @@ class PlanPage extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Plan'),
+        title: Text(
+          'Plan',
+          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w600,
+              ),
+        ),
       ),
       body: tripsAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
@@ -45,17 +50,16 @@ class PlanPage extends ConsumerWidget {
                 padding: const EdgeInsets.fromLTRB(12, 12, 12, 96),
                 gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
                   maxCrossAxisExtent: 240,
-                  mainAxisExtent: 220,
+                  mainAxisExtent: 158,
                   crossAxisSpacing: 12,
                   mainAxisSpacing: 12,
                 ),
                 itemCount: upcoming.length,
                 itemBuilder: (_, i) {
                   final t = upcoming[i];
-                  final coverPath = ref.watch(tripCoverImagePathProvider(t));
                   return TripCard(
                     trip: t,
-                    coverImagePath: coverPath,
+                    layout: TripCardLayout.plan,
                     onTap: () => context.push('/plan/${t.id}'),
                   );
                 },
