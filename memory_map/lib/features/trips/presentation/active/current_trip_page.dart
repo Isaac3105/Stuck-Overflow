@@ -229,12 +229,13 @@ class _CurrentTripBodyState extends ConsumerState<_CurrentTripBody> {
               children: [
                 Expanded(
                   child: FilledButton.icon(
-                    onPressed: mediaEnabled ? () => _captureMedia(context, day.id) : null,
+                    onPressed:
+                        mediaEnabled ? () => _captureMedia(context, day.id) : null,
                     icon: const Icon(Icons.camera_alt_outlined),
                     label: const Text('Add media'),
                   ),
                 ),
-                const SizedBox(width: 8),
+                const SizedBox(width: 5),
                 Expanded(
                   child: AudioRecorderButton(
                     tripId: widget.trip.id,
@@ -397,6 +398,19 @@ class _CurrentTripBodyState extends ConsumerState<_CurrentTripBody> {
     if (media == null) {
       messenger.showSnackBar(
         const SnackBar(content: Text('Capture canceled or permission denied.')),
+      );
+    }
+  }
+
+  Future<void> _pickFromGallery(BuildContext context, String dayId) async {
+    final messenger = ScaffoldMessenger.of(context);
+    final media = await ref.read(mediaCaptureServiceProvider).pickPhotoFromGallery(
+          tripId: widget.trip.id,
+          dayId: dayId,
+        );
+    if (media == null) {
+      messenger.showSnackBar(
+        const SnackBar(content: Text('Picking canceled or permission denied.')),
       );
     }
   }
