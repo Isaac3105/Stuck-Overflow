@@ -232,12 +232,12 @@ class _CurrentTripBodyState extends ConsumerState<_CurrentTripBody> {
               children: [
                 Expanded(
                   child: FilledButton.icon(
-                    onPressed: mediaEnabled ? () => _capturePhoto(context, day.id) : null,
+                    onPressed: mediaEnabled ? () => _showAddPhotoSheet(context, day.id) : null,
                     icon: const Icon(Icons.camera_alt_outlined),
-                    label: const Text('Take photo'),
+                    label: const Text('Add photo'),
                   ),
                 ),
-                const SizedBox(width: 8),
+                const SizedBox(width: 5),
                 Expanded(
                   child: AudioRecorderButton(
                     tripId: widget.trip.id,
@@ -382,6 +382,49 @@ class _CurrentTripBodyState extends ConsumerState<_CurrentTripBody> {
         const SnackBar(content: Text('Capture canceled or permission denied.')),
       );
     }
+  }
+
+  Future<void> _pickFromGallery(BuildContext context, String dayId) async {
+    final messenger = ScaffoldMessenger.of(context);
+    final media = await ref.read(mediaCaptureServiceProvider).pickPhotoFromGallery(
+          tripId: widget.trip.id,
+          dayId: dayId,
+        );
+    if (media == null) {
+      messenger.showSnackBar(
+        const SnackBar(content: Text('Picking canceled or permission denied.')),
+      );
+    }
+  }
+
+  void _showAddPhotoSheet(BuildContext context, String dayId) {
+    showModalBottomSheet(
+      context: context,
+      showDragHandle: true,
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.photo_camera_outlined),
+              title: const Text('Take photo'),
+              onTap: () {
+                Navigator.pop(ctx);
+                _capturePhoto(context, dayId);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.photo_library_outlined),
+              title: const Text('Pick from gallery'),
+              onTap: () {
+                Navigator.pop(ctx);
+                _pickFromGallery(context, dayId);
+              },
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   Future<void> _confirmTerminateTrip(BuildContext context) async {

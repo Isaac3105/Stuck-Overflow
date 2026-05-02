@@ -117,6 +117,49 @@ class _TodayView extends ConsumerWidget {
     }
   }
 
+  Future<void> _pickFromGallery(BuildContext context, WidgetRef ref) async {
+    final messenger = ScaffoldMessenger.of(context);
+    final media = await ref.read(mediaCaptureServiceProvider).pickPhotoFromGallery(
+          tripId: tripId,
+          dayId: day.id,
+        );
+    if (media == null) {
+      messenger.showSnackBar(
+        const SnackBar(content: Text('Picking canceled or permission denied.')),
+      );
+    }
+  }
+
+  void _showAddPhotoSheet(BuildContext context, WidgetRef ref) {
+    showModalBottomSheet(
+      context: context,
+      showDragHandle: true,
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.photo_camera_outlined),
+              title: const Text('Take photo'),
+              onTap: () {
+                Navigator.pop(ctx);
+                _capturePhoto(context, ref);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.photo_library_outlined),
+              title: const Text('Pick from gallery'),
+              onTap: () {
+                Navigator.pop(ctx);
+                _pickFromGallery(context, ref);
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final blocksAsync = ref.watch(dayBlocksProvider(day.id));
@@ -160,9 +203,9 @@ class _TodayView extends ConsumerWidget {
             const SizedBox(width: 12),
             Expanded(
               child: FilledButton.icon(
-                onPressed: () => _capturePhoto(context, ref),
+                onPressed: () => _showAddPhotoSheet(context, ref),
                 icon: const Icon(Icons.photo_camera_outlined),
-                label: const Text('Take photo'),
+                label: const Text('Add photo'),
               ),
             ),
           ],
