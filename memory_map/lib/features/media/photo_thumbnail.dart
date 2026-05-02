@@ -73,6 +73,34 @@ class PhotoViewerPage extends ConsumerWidget {
     }
   }
 
+  Future<void> _confirmDelete(BuildContext context, WidgetRef ref) async {
+    if (mediaId == null) return;
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Delete photo?'),
+        content: const Text('This photo will be permanently removed.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(
+              backgroundColor: Theme.of(ctx).colorScheme.error,
+              foregroundColor: Theme.of(ctx).colorScheme.onError,
+            ),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+    if (ok != true || !context.mounted) return;
+    await ref.read(tripRepositoryProvider).deleteMedia(mediaId!);
+    if (context.mounted) Navigator.of(context).pop();
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final dayAsync = dayId == null ? null : ref.watch(dayProvider(dayId!));
@@ -119,6 +147,12 @@ class PhotoViewerPage extends ConsumerWidget {
               }
             },
           ),
+          if (mediaId != null)
+            IconButton(
+              icon: const Icon(Icons.delete_outline),
+              tooltip: 'Delete photo',
+              onPressed: () => _confirmDelete(context, ref),
+            ),
         ],
       ),
       body: Center(

@@ -5,6 +5,9 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../widgets/cities_field.dart';
+import '../widgets/country_picker.dart';
+
 import '../../../../core/config/env.dart';
 import '../../../../core/data/geography.dart';
 import '../../../../core/services/gemini_service.dart';
@@ -63,6 +66,16 @@ class _TripPlannerPageState extends ConsumerState<TripPlannerPage> {
     if (ok != true) return;
     await ref.read(tripRepositoryProvider).deleteTrip(widget.tripId);
     if (mounted) navigator.pop();
+  }
+
+  Future<void> _openEditSheet() async {
+    final trip = ref.read(tripProvider(widget.tripId)).value;
+    if (trip == null || !mounted) return;
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      builder: (_) => _EditTripSheet(trip: trip),
+    );
   }
 
   Future<void> _openBlockSheet(String dayId, {dynamic existing}) async {
@@ -146,10 +159,26 @@ class _TripPlannerPageState extends ConsumerState<TripPlannerPage> {
           ),
           PopupMenuButton<String>(
             onSelected: (v) {
+              if (v == 'edit') _openEditSheet();
               if (v == 'delete') _confirmDelete();
             },
             itemBuilder: (ctx) => const [
-              PopupMenuItem(value: 'delete', child: Text('Delete trip')),
+              PopupMenuItem(
+                value: 'edit',
+                child: ListTile(
+                  leading: Icon(Icons.edit_outlined),
+                  title: Text('Edit trip'),
+                  contentPadding: EdgeInsets.zero,
+                ),
+              ),
+              PopupMenuItem(
+                value: 'delete',
+                child: ListTile(
+                  leading: Icon(Icons.delete_outline),
+                  title: Text('Delete trip'),
+                  contentPadding: EdgeInsets.zero,
+                ),
+              ),
             ],
           ),
         ],
@@ -303,3 +332,169 @@ class _DayBlocksList extends ConsumerWidget {
   }
 }
 
+
+
+// ---------------------------------------------------------------------------
+// Edit trip sheet
+// ---------------------------------------------------------------------------
+
+class _EditTripSheet extends ConsumerStatefulWidget {
+  const _EditTripSheet({required this.trip});
+  final Trip trip;
+
+  @override
+  ConsumerState<_EditTripSheet> createState() => _EditTripSheetState();
+}
+
+class _EditTripSheetState extends ConsumerState<_EditTripSheet> {
+  late final TextEditingController _name;
+  late List<String> _countries;
+  late List<String> _cities;
+  late DateTimeRange _range;
+  bool _saving = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _name = TextEditingController(text: widget.trip.name);
+    _countries = List.of(widget.trip.countries);
+    _cities = List.of(widget.trip.cities);
+    _range = DateTimeRange(
+      start: widget.trip.startDate,
+      end: widget.trip.endDate,
+    );
+  }
+
+  @override
+  void dispose() {
+    _name.dispose();
+    super.dispose();
+  }
+
+  Future<void> _pickRange() async {
+    final now = DateTime.now();
+    final picked = await showDateRangePicker(
+      context: context,
+      firstDate: DateTime(now.year - 5),
+      lastDate: DateTime(now.year + 5),
+      initialDateRange: _range,
+    );
+    if (picked != null) setState(() => _range = picked);
+  }
+
+  Future<void> _save() async {
+    if (_name.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Trip name is required.')),
+      );
+      return;
+    }
+    if (_countries.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Select at least one country.')),
+      );
+      return;
+    }
+    setState(() => _saving = true);
+    try {
+      final updated = widget.trip.copyWith(
+        name: _name.text.trim(),
+        countries: _countries,
+        cities: _cities,
+        startDate: _range.start,
+        endDate: _range.end,
+      );
+      await ref.read(tripRepositoryProvider).updateTrip(updated);
+      if (mounted) Navigator.of(context).pop();
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error saving trip: $e')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final df = DateFormat('d MMM yyyy', 'en');
+    return Padding(
+      padding: EdgeInsets.only(
+        left: 16,
+        right: 16,
+        top: 16,
+        bottom: MediaQuery.viewInsetsOf(context).bottom + 24,
+      ),
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    'Edit trip',
+                    style: Theme.of(context).textTheme.titleLarge,
+                  ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.close),
+                  onPressed: () => Navigator.of(context).pop(),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: _name,
+              decoration: const InputDecoration(labelText: 'Trip name'),
+            ),
+            const SizedBox(height: 16),
+            InkWell(
+              onTap: _pickRange,
+              borderRadius: BorderRadius.circular(12),
+              child: InputDecorator(
+                decoration: const InputDecoration(
+                  labelText: 'Dates',
+                  suffixIcon: Icon(Icons.calendar_month),
+                ),
+                child: Text(
+                  '${df.format(_range.start)} → ${df.format(_range.end)}',
+                ),
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              'Note: changing dates does not add or remove days.',
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
+            ),
+            const SizedBox(height: 16),
+            CountryPickerField(
+              selected: _countries,
+              onChanged: (v) => setState(() {
+                _countries = v;
+                _cities = [];
+              }),
+            ),
+            const SizedBox(height: 16),
+            CitiesField(
+              selectedCountries: _countries,
+              cities: _cities,
+              onChanged: (v) => setState(() => _cities = v),
+            ),
+            const SizedBox(height: 24),
+            FilledButton.icon(
+              onPressed: _saving ? null : _save,
+              icon: const Icon(Icons.check),
+              label: Text(_saving ? 'Saving…' : 'Save changes'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}

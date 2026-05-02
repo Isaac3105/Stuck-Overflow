@@ -1,4 +1,5 @@
-import 'package:flag/flag.dart';
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
@@ -11,6 +12,7 @@ import '../../../music/presentation/trip_playlist_card.dart';
 import '../../data/trip_providers.dart';
 import '../../domain/day.dart';
 import '../../domain/media.dart';
+import '../../domain/trip.dart';
 import '../widgets/activity_block_tile.dart';
 import 'trip_gallery_page.dart';
 import '../../../../core/services/weather_service.dart';
@@ -37,12 +39,13 @@ class TripArchivePage extends ConsumerWidget {
             data: (days) {
               return CustomScrollView(
                 slivers: [
-                  SliverAppBar.large(
+                  SliverAppBar(
                     title: Text(trip.name),
-                    expandedHeight: 160,
+                    expandedHeight: 260,
+                    pinned: true,
                     flexibleSpace: FlexibleSpaceBar(
-                      background: _Header(countries: trip.countries),
-                      title: null,
+                      collapseMode: CollapseMode.pin,
+                      background: _TripHeaderImage(trip: trip),
                     ),
                   ),
                   SliverToBoxAdapter(
@@ -99,41 +102,76 @@ class TripArchivePage extends ConsumerWidget {
   }
 }
 
-class _Header extends StatelessWidget {
-  const _Header({required this.countries});
-  final List<String> countries;
+class _TripHeaderImage extends ConsumerWidget {
+  const _TripHeaderImage({required this.trip});
+  final Trip trip;
 
   @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    return Container(
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [scheme.primaryContainer, scheme.tertiaryContainer],
+  Widget build(BuildContext context, WidgetRef ref) {
+    final coverPath = ref.watch(tripCoverImagePathProvider(trip));
+
+    final locationParts = <String>[];
+    if (trip.countries.isNotEmpty) {
+      final entry = resolveGeography(trip.countries.first);
+      locationParts.add(entry?.name ?? trip.countries.first);
+    }
+    if (trip.cities.isNotEmpty) {
+      locationParts.add(trip.cities.first);
+    }
+    final locationLine =
+        locationParts.isEmpty ? null : locationParts.join(', ');
+
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        // Background: photo or placeholder
+        if (coverPath != null)
+          Image.file(
+            File(coverPath),
+            fit: BoxFit.cover,
+          )
+        else
+          Container(
+            color: Theme.of(context).colorScheme.surfaceContainerHigh,
+            child: const Center(
+              child: Icon(Icons.image_outlined, size: 64),
+            ),
+          ),
+        // Gradient overlay
+        Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [
+                Colors.black.withValues(alpha: 0.40),
+                Colors.transparent,
+                Colors.black.withValues(alpha: 0.75),
+              ],
+            ),
+          ),
         ),
-      ),
-      alignment: Alignment.bottomLeft,
-      padding: const EdgeInsets.fromLTRB(16, 0, 16, 60),
-      child: Wrap(
-        spacing: 6,
-        children: countries
-            .take(8)
-            .map((name) {
-              final code = resolveGeography(name)?.code;
-              if (code == null) return const SizedBox.shrink();
-              return ClipRRect(
-                borderRadius: BorderRadius.circular(3),
-                child: SizedBox(
-                  width: 28,
-                  height: 18,
-                  child: Flag.fromString(code, fit: BoxFit.cover),
+        // Text overlay
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 48, 16, 16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Spacer(),
+              if (locationLine != null)
+                Text(
+                  locationLine,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w700,
+                      ),
                 ),
-              );
-            })
-            .toList(),
-      ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 }

@@ -127,6 +127,8 @@ class _MemoryCard extends StatelessWidget {
                             final status = trip!.resolvedStatus(DateTime.now());
                             if (status == TripStatus.completed) {
                               context.go('/archive/${trip!.id}');
+                            } else if (status == TripStatus.active) {
+                              context.go('/current');
                             } else {
                               context.go('/plan/${trip!.id}');
                             }
