@@ -18,6 +18,7 @@ import '../../domain/media.dart';
 import '../../domain/trip.dart';
 import '../../domain/trip_itinerary_unlock.dart';
 import '../widgets/day_rating_sheet.dart';
+import '../widgets/days_strip.dart';
 import '../widgets/empty_state.dart';
 import '../widgets/weather_card.dart';
 
@@ -64,6 +65,7 @@ class _CurrentTripBody extends ConsumerStatefulWidget {
 
 class _CurrentTripBodyState extends ConsumerState<_CurrentTripBody> {
   bool _mandatoryRatingInFlight = false;
+  int? _selectedDayIndex;
 
   @override
   Widget build(BuildContext context) {
@@ -83,52 +85,47 @@ class _CurrentTripBodyState extends ConsumerState<_CurrentTripBody> {
       loading: () => const Center(child: CircularProgressIndicator()),
       error: (e, _) => Center(child: Text('Error: $e')),
       data: (days) {
+        if (days.isEmpty) {
+          return const Center(child: Text('No days generated yet.'));
+        }
+
         final now = DateTime.now();
-        final day = unlockedItineraryDay(days, now);
+        final unlockedDay = unlockedItineraryDay(days, now);
         final ratedToday = todayRatedDay(days, now);
 
-        if (day == null) {
-          return EmptyState(
-            icon: Icons.flag_outlined,
-            title: 'All days rated',
-            message: 'You have rated all days of this trip. You can complete it now.',
-            action: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                FilledButton.icon(
-                  onPressed: () => _confirmTerminateTrip(context),
-                  icon: const Icon(Icons.flag),
-                  label: const Text('End trip'),
-                ),
-                if (ratedToday != null) ...[
-                  const SizedBox(height: 12),
-                  OutlinedButton.icon(
-                    onPressed: () =>
-                        _confirmUndoTodayRating(context, ratedToday),
-                    icon: const Icon(Icons.undo),
-                    label: const Text('Undo today’s rating'),
-                  ),
-                ],
-              ],
-            ),
-          );
-        }
+        final resolvedIndex = _selectedDayIndex ??
+            (unlockedDay != null ? days.indexOf(unlockedDay) : days.length - 1);
+        final day = days[resolvedIndex.clamp(0, days.length - 1)];
 
         final blocksAsync = ref.watch(dayBlocksProvider(day.id));
         final mediaAsync = ref.watch(dayMediaProvider(day.id));
         final dateLabel =
             DateFormat('EEEE, MMMM d', 'en').format(day.date);
+        final isRated = day.dayRating != null;
 
         return ListView(
           padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
           children: [
             _HeaderCard(trip: widget.trip, dateLabel: dateLabel, day: day),
-            const SizedBox(height: 10),
-            OutlinedButton.icon(
-              onPressed: () => _endDayAndRate(context, day),
-              icon: const Icon(Icons.star_rate_rounded),
-              label: const Text('End day and rate'),
+            const SizedBox(height: 16),
+            DaysStrip(
+              days: days,
+              selectedIndex: resolvedIndex.clamp(0, days.length - 1),
+              onSelect: (i) => setState(() => _selectedDayIndex = i),
             ),
+            const SizedBox(height: 10),
+            if (!isRated && unlockedDay != null && day.id == unlockedDay.id)
+              OutlinedButton.icon(
+                onPressed: () => _endDayAndRate(context, day),
+                icon: const Icon(Icons.star_rate_rounded),
+                label: const Text('End day and rate'),
+              )
+            else if (ratedToday != null && ratedToday.id == day.id)
+              OutlinedButton.icon(
+                onPressed: () => _confirmUndoTodayRating(context, ratedToday),
+                icon: const Icon(Icons.undo),
+                label: const Text('Undo today’s rating'),
+              ),
             const SizedBox(height: 10),
             Row(
               children: [
