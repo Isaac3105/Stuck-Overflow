@@ -237,7 +237,7 @@ class _CurrentTripBodyState extends ConsumerState<_CurrentTripBody> {
                     label: const Text('Take photo'),
                   ),
                 ),
-                const SizedBox(width: 8),
+                const SizedBox(width: 5),
                 Expanded(
                   child: AudioRecorderButton(
                     tripId: widget.trip.id,
