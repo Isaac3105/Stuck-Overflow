@@ -6,6 +6,7 @@ import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../../core/config/env.dart';
+import '../../../../core/data/geography.dart';
 import '../../../../core/services/gemini_service.dart';
 import '../../../../core/services/spotify_service.dart';
 import '../../data/trip_providers.dart';
@@ -206,17 +207,21 @@ class _TripHeader extends StatelessWidget {
       child: Row(
         children: [
           ...trip.countries.take(4).map<Widget>(
-                (c) => Padding(
-                  padding: const EdgeInsets.only(right: 6),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(3),
-                    child: SizedBox(
-                      width: 24,
-                      height: 16,
-                      child: Flag.fromString(c, fit: BoxFit.cover),
+                (name) {
+                  final code = resolveGeography(name)?.code;
+                  if (code == null) return const SizedBox.shrink();
+                  return Padding(
+                    padding: const EdgeInsets.only(right: 6),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(3),
+                      child: SizedBox(
+                        width: 24,
+                        height: 16,
+                        child: Flag.fromString(code, fit: BoxFit.cover),
+                      ),
                     ),
-                  ),
-                ),
+                  );
+                },
               ),
           if (trip.cities.isNotEmpty)
             Expanded(
