@@ -380,9 +380,9 @@ class LocalTripRepository implements TripRepository {
     final rows = await (db.select(db.days)..where((d) => d.tripId.equals(tripId)))
         .get();
     if (rows.isEmpty) return;
-    final allRated = rows.every((r) => r.dayRating != null);
-    final double? avg = allRated
-        ? rows.map((r) => r.dayRating!.toDouble()).reduce((a, b) => a + b) /
+    final hasAnyRating = rows.any((r) => r.dayRating != null);
+    final double? avg = hasAnyRating
+        ? rows.map((r) => (r.dayRating ?? 0).toDouble()).fold<double>(0, (a, b) => a + b) /
             rows.length
         : null;
     await (db.update(db.trips)..where((t) => t.id.equals(tripId))).write(

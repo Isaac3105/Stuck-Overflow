@@ -26,7 +26,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.e);
 
   @override
-  int get schemaVersion => 3;
+  int get schemaVersion => 4;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -37,7 +37,7 @@ class AppDatabase extends _$AppDatabase {
           if (from < 2) {
             await m.addColumn(trips, trips.selectedPlaylistId);
           }
-          if (from < 3) {
+          if (from < 4) {
             try {
               await m.addColumn(days, days.coverMediaId);
             } catch (e) {

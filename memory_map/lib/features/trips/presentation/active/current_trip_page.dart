@@ -248,8 +248,7 @@ class _CurrentTripBodyState extends ConsumerState<_CurrentTripBody> {
         context,
         day: day,
         title: 'How was this day?',
-        subtitle:
-            'Before moving on, rate this day from 1 to 5 stars.',
+        subtitle: 'Before moving on, rate this day from 1 to 5 stars.',
         barrierDismissible: false,
       );
       if (!mounted) return;
@@ -258,6 +257,12 @@ class _CurrentTripBodyState extends ConsumerState<_CurrentTripBody> {
               dayId: day.id,
               stars: stars,
             );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error saving rating: $e')),
+        );
       }
     } finally {
       if (mounted) {
@@ -299,19 +304,27 @@ class _CurrentTripBodyState extends ConsumerState<_CurrentTripBody> {
   }
 
   Future<void> _endDayAndRate(BuildContext context, TripDay day) async {
-    final stars = await showDayRatingSheet(
-      context,
-      day: day,
-      title: 'Rate this day',
-      subtitle: 'The next day’s itinerary only appears tomorrow in the calendar.',
-      barrierDismissible: false,
-    );
-    if (stars == null || !context.mounted) return;
-    await ref.read(tripRepositoryProvider).setDayRating(dayId: day.id, stars: stars);
-    if (context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Day saved. See you tomorrow!')),
+    try {
+      final stars = await showDayRatingSheet(
+        context,
+        day: day,
+        title: 'Rate this day',
+        subtitle: 'The next day’s itinerary only appears tomorrow in the calendar.',
+        barrierDismissible: false,
       );
+      if (stars == null || !context.mounted) return;
+      await ref.read(tripRepositoryProvider).setDayRating(dayId: day.id, stars: stars);
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Day saved. See you tomorrow!')),
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error saving rating: $e')),
+        );
+      }
     }
   }
 
