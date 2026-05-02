@@ -19,16 +19,19 @@ class _CreateTripPageState extends ConsumerState<CreateTripPage> {
   final _name = TextEditingController();
   List<String> _countries = [];
   List<String> _cities = [];
-  DateTimeRange? _range;
+  DateTime? _startDate;
+  DateTime? _endDate;
   bool _saving = false;
 
   final _nameShakeKey = GlobalKey<ShakeWidgetState>();
-  final _rangeShakeKey = GlobalKey<ShakeWidgetState>();
+  final _startShakeKey = GlobalKey<ShakeWidgetState>();
+  final _endShakeKey = GlobalKey<ShakeWidgetState>();
   final _countriesShakeKey = GlobalKey<ShakeWidgetState>();
   final _buttonShakeKey = GlobalKey<ShakeWidgetState>();
 
   String? _nameError;
-  String? _rangeError;
+  String? _startError;
+  String? _endError;
   String? _countriesError;
 
   @override
@@ -37,22 +40,93 @@ class _CreateTripPageState extends ConsumerState<CreateTripPage> {
     super.dispose();
   }
 
-  Future<void> _pickRange() async {
+  bool _isBlocked(DateTime date) {
+    final trips = ref.read(allTripsProvider).valueOrNull ?? [];
+    final d = DateTime(date.year, date.month, date.day);
+    for (final t in trips) {
+      final s = DateTime(t.startDate.year, t.startDate.month, t.startDate.day);
+      final e = DateTime(t.endDate.year, t.endDate.month, t.endDate.day);
+      if (!d.isBefore(s) && !d.isAfter(e)) return true;
+    }
+    return false;
+  }
+
+  Future<void> _pickStart() async {
     final now = DateTime.now();
-    final picked = await showDateRangePicker(
+    
+    // Find a valid initial date
+    DateTime initial = DateTime(now.year, now.month, now.day);
+    while (_isBlocked(initial)) {
+      initial = initial.add(const Duration(days: 1));
+      if (initial.year > now.year + 5) break;
+    }
+
+    final picked = await showDatePicker(
       context: context,
+      initialDate: _startDate ?? initial,
       firstDate: DateTime(now.year - 1),
       lastDate: DateTime(now.year + 5),
-      initialDateRange: _range ??
-          DateTimeRange(
-            start: now,
-            end: now.add(const Duration(days: 6)),
-          ),
+      selectableDayPredicate: (day) => !_isBlocked(day),
     );
     if (picked != null) {
       setState(() {
-        _range = picked;
-        _rangeError = null;
+        _startDate = picked;
+        _startError = null;
+        // Reset end date if it's now invalid
+        if (_endDate != null && (_endDate!.isBefore(_startDate!) || _isRangeBlocked(_startDate!, _endDate!))) {
+          _endDate = null;
+        }
+      });
+    }
+  }
+
+  bool _isRangeBlocked(DateTime start, DateTime end) {
+    final trips = ref.read(allTripsProvider).valueOrNull ?? [];
+    final s1 = DateTime(start.year, start.month, start.day);
+    final e1 = DateTime(end.year, end.month, end.day);
+    for (final t in trips) {
+      final s2 = DateTime(t.startDate.year, t.startDate.month, t.startDate.day);
+      final e2 = DateTime(t.endDate.year, t.endDate.month, t.endDate.day);
+      if (!s1.isAfter(e2) && !e1.isBefore(s2)) return true;
+    }
+    return false;
+  }
+
+  Future<void> _pickEnd() async {
+    if (_startDate == null) {
+      setState(() => _startError = 'Select start date first');
+      _startShakeKey.currentState?.shake();
+      return;
+    }
+
+    final now = DateTime.now();
+    final trips = ref.read(allTripsProvider).valueOrNull ?? [];
+    
+    // Find the first blocked date after start
+    DateTime? firstBlocked;
+    for (final t in trips) {
+      final s = DateTime(t.startDate.year, t.startDate.month, t.startDate.day);
+      if (s.isAfter(_startDate!)) {
+        if (firstBlocked == null || s.isBefore(firstBlocked)) {
+          firstBlocked = s;
+        }
+      }
+    }
+
+    final last = firstBlocked?.subtract(const Duration(days: 1)) ?? DateTime(now.year + 5);
+    final initial = _endDate ?? _startDate!;
+    
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: initial.isAfter(last) ? last : initial,
+      firstDate: _startDate!,
+      lastDate: last,
+      selectableDayPredicate: (day) => !_isBlocked(day),
+    );
+    if (picked != null) {
+      setState(() {
+        _endDate = picked;
+        _endError = null;
       });
     }
   }
@@ -61,7 +135,8 @@ class _CreateTripPageState extends ConsumerState<CreateTripPage> {
     bool hasError = false;
     setState(() {
       _nameError = null;
-      _rangeError = null;
+      _startError = null;
+      _endError = null;
       _countriesError = null;
     });
 
@@ -70,9 +145,14 @@ class _CreateTripPageState extends ConsumerState<CreateTripPage> {
       _nameShakeKey.currentState?.shake();
       hasError = true;
     }
-    if (_range == null) {
-      _rangeError = 'Date range is required';
-      _rangeShakeKey.currentState?.shake();
+    if (_startDate == null) {
+      _startError = 'Required';
+      _startShakeKey.currentState?.shake();
+      hasError = true;
+    }
+    if (_endDate == null) {
+      _endError = 'Required';
+      _endShakeKey.currentState?.shake();
       hasError = true;
     }
     if (_countries.isEmpty) {
@@ -87,6 +167,13 @@ class _CreateTripPageState extends ConsumerState<CreateTripPage> {
       return;
     }
 
+    // Final overlap check
+    if (_isRangeBlocked(_startDate!, _endDate!)) {
+      setState(() => _endError = 'Range overlaps with another trip');
+      _endShakeKey.currentState?.shake();
+      return;
+    }
+
     setState(() => _saving = true);
     try {
       final repo = ref.read(tripRepositoryProvider);
@@ -94,8 +181,8 @@ class _CreateTripPageState extends ConsumerState<CreateTripPage> {
         name: _name.text.trim(),
         countries: _countries,
         cities: _cities,
-        startDate: _range!.start,
-        endDate: _range!.end,
+        startDate: _startDate!,
+        endDate: _endDate!,
       );
       if (!mounted) return;
       context.go('/plan/${trip.id}');
@@ -149,21 +236,56 @@ class _CreateTripPageState extends ConsumerState<CreateTripPage> {
             ),
           ),
           const SizedBox(height: 16),
-          ShakeWidget(
-            key: _rangeShakeKey,
-            child: InkWell(
-              onTap: _pickRange,
-              borderRadius: BorderRadius.circular(12),
-              child: InputDecorator(
-                decoration: InputDecoration(
-                  label: _buildLabel('Dates', true),
-                  suffixIcon: const Icon(Icons.calendar_month),
-                  errorText: _rangeError,
+          IntrinsicHeight(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Expanded(
+                  child: ShakeWidget(
+                    key: _startShakeKey,
+                    child: GestureDetector(
+                      onTap: _pickStart,
+                      behavior: HitTestBehavior.opaque,
+                      child: InputDecorator(
+                        decoration: InputDecoration(
+                          label: _buildLabel('Start', true),
+                          errorText: _startError,
+                          prefixIcon: const Icon(Icons.calendar_today, size: 20),
+                        ),
+                        child: Text(
+                          _startDate == null ? 'Date' : df.format(_startDate!),
+                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                fontSize: 13,
+                              ),
+                        ),
+                      ),
+                    ),
+                  ),
                 ),
-                child: Text(_range == null
-                    ? 'Pick dates'
-                    : '${df.format(_range!.start)} → ${df.format(_range!.end)}'),
-              ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: ShakeWidget(
+                    key: _endShakeKey,
+                    child: GestureDetector(
+                      onTap: _pickEnd,
+                      behavior: HitTestBehavior.opaque,
+                      child: InputDecorator(
+                        decoration: InputDecoration(
+                          label: _buildLabel('End', true),
+                          errorText: _endError,
+                          prefixIcon: const Icon(Icons.event, size: 20),
+                        ),
+                        child: Text(
+                          _endDate == null ? 'Date' : df.format(_endDate!),
+                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                fontSize: 13,
+                              ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
           const SizedBox(height: 16),
