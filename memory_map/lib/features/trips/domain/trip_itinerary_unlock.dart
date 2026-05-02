@@ -21,22 +21,12 @@ TripDay? pendingPastDayNeedingRating(List<TripDay> days, DateTime now) {
   return null;
 }
 
-/// First day up to today that is unlocked (all prior calendar days rated) and not yet rated.
-/// After rating "today" early, this returns null until the next calendar day.
+/// First unrated day in the trip.
+/// After rating a day, it returns the next unrated day immediately.
 TripDay? unlockedItineraryDay(List<TripDay> days, DateTime now) {
-  final today = _calendarKey(now);
   final sorted = _sortedByDate(days);
   for (final d in sorted) {
-    final dk = _calendarKey(d.date);
-    if (dk.isAfter(today)) break;
-    final priorAllRated = sorted.every((x) {
-      final xk = _calendarKey(x.date);
-      if (!xk.isBefore(dk)) return true;
-      return x.dayRating != null;
-    });
-    if (!priorAllRated) continue;
-    if (d.dayRating != null) continue;
-    return d;
+    if (d.dayRating == null) return d;
   }
   return null;
 }
