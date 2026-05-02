@@ -124,7 +124,7 @@ class _MyTripsState extends ConsumerState<MyTrips> {
                             itemBuilder: (context, index) {
                               final t = chronologicalOrdered[index];
                               final coverPath =
-                                  ref.watch(_coverImagePathProvider(t));
+                                  ref.watch(tripCoverImagePathProvider(t));
                               return TripCard(
                                 trip: t,
                                 coverImagePath: coverPath,
@@ -269,7 +269,7 @@ class _MyTripsState extends ConsumerState<MyTrips> {
             delegate: SliverChildBuilderDelegate(
               (ctx, j) {
                 final t = g.trips[j];
-                final coverPath = ref.watch(_coverImagePathProvider(t));
+                final coverPath = ref.watch(tripCoverImagePathProvider(t));
                 return TripCard(
                   trip: t,
                   coverImagePath: coverPath,
@@ -579,8 +579,6 @@ class _FilterSheetBodyState extends State<_FilterSheetBody> {
   }
 }
 
-
-
 class _TripPreviewDialog extends ConsumerWidget {
   const _TripPreviewDialog({required this.trip});
   final Trip trip;
@@ -810,41 +808,7 @@ class _TripPreviewDialog extends ConsumerWidget {
   }
 }
 
-final _coverImagePathProvider =
-    Provider.autoDispose.family<String?, Trip>((ref, trip) {
-  final mediaAsync = ref.watch(tripMediaProvider(trip.id));
-  final daysAsync = ref.watch(tripDaysProvider(trip.id));
 
-  return mediaAsync.maybeWhen(
-    data: (list) {
-      // 1. Specific trip cover
-      if (trip.coverMediaId != null) {
-        for (final m in list) {
-          if (m.id == trip.coverMediaId) return m.filePath;
-        }
-      }
-
-      // 2. Try to find the first "main image" of any day
-      final mainImageIds = daysAsync.maybeWhen(
-        data: (days) => days.map((d) => d.coverMediaId).whereType<String>().toSet(),
-        orElse: () => <String>{},
-      );
-
-      if (mainImageIds.isNotEmpty) {
-        for (final m in list) {
-          if (mainImageIds.contains(m.id)) return m.filePath;
-        }
-      }
-
-      // 3. Fallback to first photo
-      for (final m in list) {
-        if (m.type == MediaType.photo) return m.filePath;
-      }
-      return null;
-    },
-    orElse: () => null,
-  );
-});
 
 class _TripBackgroundSlideshow extends StatefulWidget {
   const _TripBackgroundSlideshow({required this.photos});

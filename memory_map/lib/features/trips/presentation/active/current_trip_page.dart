@@ -89,23 +89,28 @@ class _CurrentTripBodyState extends ConsumerState<_CurrentTripBody> {
 
         if (day == null) {
           return EmptyState(
-            icon: Icons.nights_stay_outlined,
-            title: 'Next day soon',
-            message:
-                'You already rated today. The next day’s itinerary unlocks tomorrow in the calendar.',
-            action: ratedToday == null
-                ? null
-                : Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      OutlinedButton.icon(
-                        onPressed: () =>
-                            _confirmUndoTodayRating(context, ratedToday),
-                        icon: const Icon(Icons.undo),
-                        label: const Text('Undo today’s rating'),
-                      ),
-                    ],
+            icon: Icons.flag_outlined,
+            title: 'All days rated',
+            message: 'You have rated all days of this trip. You can complete it now.',
+            action: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                FilledButton.icon(
+                  onPressed: () => _confirmTerminateTrip(context),
+                  icon: const Icon(Icons.flag),
+                  label: const Text('End trip'),
+                ),
+                if (ratedToday != null) ...[
+                  const SizedBox(height: 12),
+                  OutlinedButton.icon(
+                    onPressed: () =>
+                        _confirmUndoTodayRating(context, ratedToday),
+                    icon: const Icon(Icons.undo),
+                    label: const Text('Undo today’s rating'),
                   ),
+                ],
+              ],
+            ),
           );
         }
 
@@ -310,14 +315,14 @@ class _CurrentTripBodyState extends ConsumerState<_CurrentTripBody> {
         context,
         day: day,
         title: 'Rate this day',
-        subtitle: 'The next day’s itinerary only appears tomorrow in the calendar.',
+        subtitle: 'Rate this day to move on to the next day.',
         barrierDismissible: false,
       );
       if (stars == null || !context.mounted) return;
       await ref.read(tripRepositoryProvider).setDayRating(dayId: day.id, stars: stars);
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Day saved. See you tomorrow!')),
+          const SnackBar(content: Text('Day saved. Moving to next day!')),
         );
       }
     } catch (e) {

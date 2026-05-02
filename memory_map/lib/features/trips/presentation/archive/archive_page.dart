@@ -54,7 +54,7 @@ class _ArchiveGrid extends ConsumerWidget {
       itemCount: trips.length,
       itemBuilder: (context, i) {
         final t = trips[i];
-        final coverPath = ref.watch(_coverImagePathProvider(t));
+        final coverPath = ref.watch(tripCoverImagePathProvider(t));
         return TripCard(
           trip: t,
           coverImagePath: coverPath,
@@ -65,30 +65,3 @@ class _ArchiveGrid extends ConsumerWidget {
   }
 }
 
-final _coverImagePathProvider = Provider.autoDispose.family<String?, Trip>((ref, trip) {
-  if (trip.coverMediaId == null) {
-    final mediaAsync = ref.watch(tripMediaProvider(trip.id));
-    return mediaAsync.maybeWhen(
-      data: (list) {
-        for (final m in list) {
-          if (m.type.name == 'photo') return m.filePath;
-        }
-        return null;
-      },
-      orElse: () => null,
-    );
-  }
-  final mediaAsync = ref.watch(tripMediaProvider(trip.id));
-  return mediaAsync.maybeWhen(
-    data: (list) {
-      for (final m in list) {
-        if (m.id == trip.coverMediaId) return m.filePath;
-      }
-      for (final m in list) {
-        if (m.type.name == 'photo') return m.filePath;
-      }
-      return null;
-    },
-    orElse: () => null,
-  );
-});
