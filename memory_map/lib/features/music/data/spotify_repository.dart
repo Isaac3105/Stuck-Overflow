@@ -194,4 +194,3 @@ final spotifyRepositoryProvider = Provider<SpotifyRepository>((ref) {
     ref.watch(spotifyServiceProvider),
   );
 });
-
