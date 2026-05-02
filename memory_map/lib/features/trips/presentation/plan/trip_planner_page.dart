@@ -741,7 +741,7 @@ class _SuggestionsSidebar extends StatelessWidget {
                   const Icon(Icons.auto_awesome),
                   const SizedBox(width: 8),
                   Text(
-                    'Sugestões',
+                    'Suggestions',
                     style: Theme.of(context).textTheme.headlineSmall,
                   ),
                 ],

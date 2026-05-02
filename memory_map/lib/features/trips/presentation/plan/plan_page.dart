@@ -52,8 +52,10 @@ class PlanPage extends ConsumerWidget {
                 itemCount: upcoming.length,
                 itemBuilder: (_, i) {
                   final t = upcoming[i];
+                  final coverPath = ref.watch(tripCoverImagePathProvider(t));
                   return TripCard(
                     trip: t,
+                    coverImagePath: coverPath,
                     onTap: () => context.push('/plan/${t.id}'),
                   );
                 },
