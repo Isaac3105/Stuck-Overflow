@@ -136,7 +136,14 @@ final _rollSeedProvider = StateProvider<int>(
 
 final featuredCompletedTripProvider =
     FutureProvider<FeaturedTripData?>((ref) async {
+  final all = await ref.watch(allFeaturedTripsProvider.future);
+  if (all.isEmpty) return null;
   final seed = ref.watch(_rollSeedProvider);
+  return all[Random(seed).nextInt(all.length)];
+});
+
+final allFeaturedTripsProvider =
+    FutureProvider<List<FeaturedTripData>>((ref) async {
   final tripsAsync = ref.watch(allTripsProvider);
   final trips = tripsAsync.maybeWhen(
     data: (t) => t,
@@ -145,13 +152,15 @@ final featuredCompletedTripProvider =
   final now = DateTime.now();
   final completed = trips
       .where((t) => t.resolvedStatus(now) == TripStatus.completed)
-      .toList();
-  if (completed.isEmpty) return null;
+      .toList()
+    ..sort((a, b) => b.startDate.compareTo(a.startDate)); // Newest first
+
+  if (completed.isEmpty) return const [];
 
   final repo = ref.watch(tripRepositoryProvider);
-  final rng = Random(seed);
-  for (var attempts = 0; attempts < completed.length; attempts++) {
-    final t = completed[rng.nextInt(completed.length)];
+  final results = <FeaturedTripData>[];
+
+  for (final t in completed) {
     final days = await repo.getDays(t.id);
     final mainImageIds =
         days.map((d) => d.coverMediaId).whereType<String>().toSet();
@@ -161,18 +170,19 @@ final featuredCompletedTripProvider =
       ..sort((a, b) => a.takenAt.compareTo(b.takenAt));
 
     if (photos.isEmpty) continue;
+
     final audios = media.where((m) => m.type == MediaType.audio).toList()
       ..sort((a, b) => a.takenAt.compareTo(b.takenAt));
-    return _buildFeaturedData(
+
+    results.add(await _buildFeaturedData(
       repo: repo,
       trip: t,
       photos: photos,
       audios: audios,
       mainImageIds: mainImageIds,
-    );
+    ));
   }
-  final t = completed.first;
-  return FeaturedTripData(trip: t, photos: const [], audios: const []);
+  return results;
 });
 
 void rollNewFeatured(WidgetRef ref) {

@@ -9,29 +9,42 @@ import 'home_providers.dart';
 import 'memory_preview_map.dart';
 import 'story_player_page.dart';
 
-class HomePage extends ConsumerWidget {
+class HomePage extends ConsumerStatefulWidget {
   const HomePage({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final featured = ref.watch(featuredCompletedTripProvider);
+  ConsumerState<HomePage> createState() => _HomePageState();
+}
+
+class _HomePageState extends ConsumerState<HomePage> {
+  late final PageController _pageController;
+  static const _initialPage = 5000;
+
+  @override
+  void initState() {
+    super.initState();
+    _pageController = PageController(initialPage: _initialPage);
+  }
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final tripsAsync = ref.watch(allFeaturedTripsProvider);
 
     return Scaffold(
       appBar: AppBar(
         title: const Text('Memory Map'),
-        actions: [
-          IconButton(
-            tooltip: 'Shuffle',
-            icon: const Icon(Icons.shuffle_rounded),
-            onPressed: () => rollNewFeatured(ref),
-          ),
-        ],
       ),
-      body: featured.when(
+      body: tripsAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (e, _) => Center(child: Text('Error: $e')),
         data: (data) {
-          if (data == null || data.photos.isEmpty) {
+          if (data.isEmpty) {
             return const EmptyState(
               icon: Icons.auto_stories_outlined,
               title: 'No memories yet',
@@ -39,32 +52,55 @@ class HomePage extends ConsumerWidget {
                   'Finish a trip with photos and audios and it will appear here as a memory ready to relive.',
             );
           }
-          return ListView(
-            padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
+
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Text(
-                'Today, we remember...',
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.w600,
-                      letterSpacing: -0.2,
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'My summary',
+                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                            fontWeight: FontWeight.w600,
+                            letterSpacing: -0.2,
+                          ),
                     ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Swipe left or right to see more',
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                            color:
+                                Theme.of(context).colorScheme.onSurfaceVariant,
+                          ),
+                    ),
+                  ],
+                ),
               ),
-              const SizedBox(height: 4),
-              Text(
-                'A photo and the place it belongs to.',
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
-                    ),
+              Expanded(
+                child: PageView.builder(
+                  controller: _pageController,
+                  itemBuilder: (context, index) {
+                    final item = data[index % data.length];
+                    return Padding(
+                      padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
+                      child: _FeaturedCard(data: item),
+                    );
+                  },
+                ),
               ),
-              const SizedBox(height: 16),
-              _FeaturedCard(data: data),
-              const SizedBox(height: 20),
-              Text(
-                'Tip: you can record audios during the trip and they can serve as a "background sound" for the memories.',
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
-                      height: 1.35,
-                    ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
+                child: Text(
+                  'Tip: you can record audios during the trip and they can serve as a "background sound" for the memories.',
+                  textAlign: TextAlign.center,
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        height: 1.35,
+                      ),
+                ),
               ),
             ],
           );

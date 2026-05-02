@@ -47,7 +47,7 @@ class TimelinePage extends ConsumerWidget {
                 padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
                 children: [
                   _SectionTitle(
-                    title: 'Moments',
+                    title: '',
                     subtitle:
                         '${media.length} items · ${photos.length} photos · ${audios.length} audios',
                   ),

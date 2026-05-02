@@ -28,7 +28,7 @@ class WeatherCard extends ConsumerWidget {
         child: async.when(
           loading: () => const SizedBox(
             height: 56,
-            child: Center(child: CircularProgressIndicator()),
+            child: Center(child: SizedBox.shrink()),
           ),
           error: (e, _) => const Text('No weather available'),
           data: (w) {
