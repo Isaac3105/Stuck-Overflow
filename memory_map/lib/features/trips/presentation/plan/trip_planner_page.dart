@@ -234,43 +234,98 @@ class _TripPlannerPageState extends ConsumerState<TripPlannerPage> {
   }
 }
 
-class _TripHeader extends StatelessWidget {
+class _TripHeader extends ConsumerStatefulWidget {
   const _TripHeader({required this.trip});
-  final dynamic trip;
+  final Trip trip; // trip has already been resolved in build() above, type was dynamic before, but Trip is safer
+
+  @override
+  ConsumerState<_TripHeader> createState() => _TripHeaderState();
+}
+
+class _TripHeaderState extends ConsumerState<_TripHeader> {
+  final ScrollController _scrollController = ScrollController();
+  @override
+  void initState() {
+    super.initState();
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
-      child: Row(
+      padding: const EdgeInsets.fromLTRB(8, 0, 8, 12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          ...trip.countries.take(4).map<Widget>(
-                (name) {
-                  final code = resolveGeography(name)?.code;
-                  if (code == null) return const SizedBox.shrink();
-                  return Padding(
-                    padding: const EdgeInsets.only(right: 6),
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(3),
-                      child: SizedBox(
-                        width: 24,
-                        height: 16,
-                        child: Flag.fromString(code, fit: BoxFit.cover),
-                      ),
+          // Flags Row
+          SizedBox(
+            height: 32,
+            child: Row(
+              children: [
+                if (widget.trip.countries.length > 5)
+                  Icon(
+                    Icons.chevron_left_rounded,
+                    size: 20,
+                    color: scheme.onSurface,
+                  ),
+                Expanded(
+                  child: SingleChildScrollView(
+                    controller: _scrollController,
+                    scrollDirection: Axis.horizontal,
+                    padding: const EdgeInsets.symmetric(horizontal: 4),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: widget.trip.countries.map<Widget>(
+                        (name) {
+                          final code = resolveGeography(name)?.code;
+                          if (code == null) return const SizedBox.shrink();
+                          return Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 3),
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(3),
+                              child: SizedBox(
+                                width: 24,
+                                height: 16,
+                                child: Flag.fromString(code, fit: BoxFit.cover),
+                              ),
+                            ),
+                          );
+                        },
+                      ).toList(),
                     ),
-                  );
-                },
-              ),
-          if (trip.cities.isNotEmpty)
-            Expanded(
+                  ),
+                ),
+                if (widget.trip.countries.length > 5)
+                  Icon(
+                    Icons.chevron_right_rounded,
+                    size: 20,
+                    color: scheme.onSurface,
+                  ),
+              ],
+            ),
+          ),
+          if (widget.trip.cities.isNotEmpty) ...[
+            const SizedBox(height: 4),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8),
               child: Text(
-                trip.cities.join(' · '),
+                widget.trip.cities.join(' · '),
+                maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: scheme.onSurfaceVariant,
+                      fontWeight: FontWeight.w500,
                     ),
               ),
             ),
+          ],
         ],
       ),
     );

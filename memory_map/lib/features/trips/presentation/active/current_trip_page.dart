@@ -21,6 +21,7 @@ import '../widgets/days_strip.dart';
 import '../widgets/empty_state.dart';
 import '../widgets/weather_card.dart';
 import '../widgets/suggestions_sidebar.dart';
+import '../widgets/itinerary_popup.dart';
 import 'full_itinerary_page.dart';
 
 class CurrentTripPage extends ConsumerWidget {
@@ -482,12 +483,16 @@ class _HeaderCard extends ConsumerWidget {
     );
 
     final locationParts = <String>[];
-    if (trip.countries.isNotEmpty) {
-      final entry = resolveGeography(trip.countries.first);
-      locationParts.add(entry?.name ?? trip.countries.first);
-    }
-    if (trip.cities.isNotEmpty) {
-      locationParts.add(trip.cities.first);
+    if (trip.countries.length > 2) {
+      final names = trip.countries
+          .take(2)
+          .map((c) => resolveGeography(c)?.name ?? c)
+          .join(', ');
+      locationParts.add('$names (+${trip.countries.length - 2})');
+    } else if (trip.countries.isNotEmpty) {
+      locationParts.addAll(
+        trip.countries.map((c) => resolveGeography(c)?.name ?? c),
+      );
     }
     final locationLine = locationParts.isEmpty ? null : locationParts.join(', ');
 
@@ -507,9 +512,6 @@ class _HeaderCard extends ConsumerWidget {
             else
               Container(
                 color: Theme.of(context).colorScheme.surfaceContainerHigh,
-                child: const Center(
-                  child: Icon(Icons.image_outlined, size: 48),
-                ),
               ),
             Container(
               decoration: BoxDecoration(
@@ -547,14 +549,45 @@ class _HeaderCard extends ConsumerWidget {
                   ),
                   const Spacer(),
                   if (locationLine != null)
-                    Text(
-                      locationLine,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w700,
+                    Padding(
+                      padding: const EdgeInsets.only(top: 8),
+                      child: InkWell(
+                        onTap: () => showItineraryPopup(context, trip),
+                        borderRadius: BorderRadius.circular(20),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.2),
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(
+                              color: Colors.white.withValues(alpha: 0.3),
+                              width: 1,
+                            ),
                           ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(
+                                Icons.location_on_outlined,
+                                color: Colors.white,
+                                size: 18,
+                              ),
+                              const SizedBox(width: 8),
+                              Flexible(
+                                child: Text(
+                                  locationLine,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
                     ),
                 ],
               ),
