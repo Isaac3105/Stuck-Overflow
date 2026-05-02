@@ -17,8 +17,15 @@ import '../widgets/empty_state.dart';
 import 'activity_block_form.dart';
 
 class TripPlannerPage extends ConsumerStatefulWidget {
-  const TripPlannerPage({super.key, required this.tripId});
+  const TripPlannerPage({
+    super.key,
+    required this.tripId,
+    this.initialDayId,
+  });
+
   final String tripId;
+  /// When set (e.g. `?day=` from rotas), o separador abre neste dia.
+  final String? initialDayId;
 
   @override
   ConsumerState<TripPlannerPage> createState() => _TripPlannerPageState();
@@ -26,6 +33,8 @@ class TripPlannerPage extends ConsumerStatefulWidget {
 
 class _TripPlannerPageState extends ConsumerState<TripPlannerPage> {
   int _selectedDayIndex = 0;
+  bool _didApplyRouteDay = false;
+  bool _routeDayPostFrameScheduled = false;
 
   Future<void> _confirmDelete() async {
     final navigator = Navigator.of(context);
@@ -62,9 +71,43 @@ class _TripPlannerPageState extends ConsumerState<TripPlannerPage> {
   }
 
   @override
+  void didUpdateWidget(TripPlannerPage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.tripId != widget.tripId ||
+        oldWidget.initialDayId != widget.initialDayId) {
+      _didApplyRouteDay = false;
+      _routeDayPostFrameScheduled = false;
+    }
+  }
+
+  void _applyInitialDayFromRoute(List<TripDay> days) {
+    if (_didApplyRouteDay || !mounted) return;
+    final id = widget.initialDayId;
+    if (id == null) {
+      setState(() => _didApplyRouteDay = true);
+      return;
+    }
+    final idx = days.indexWhere((d) => d.id == id);
+    setState(() {
+      _didApplyRouteDay = true;
+      if (idx >= 0) _selectedDayIndex = idx;
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
     final tripAsync = ref.watch(tripProvider(widget.tripId));
     final daysAsync = ref.watch(tripDaysProvider(widget.tripId));
+
+    daysAsync.whenData((days) {
+      if (_didApplyRouteDay || _routeDayPostFrameScheduled) return;
+      _routeDayPostFrameScheduled = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _routeDayPostFrameScheduled = false;
+        if (!mounted || _didApplyRouteDay) return;
+        _applyInitialDayFromRoute(days);
+      });
+    });
 
     ref.listen(tripProvider(widget.tripId), (previous, next) {
       next.whenData((trip) {
@@ -96,7 +139,7 @@ class _TripPlannerPageState extends ConsumerState<TripPlannerPage> {
       ),
       body: tripAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(child: Text('Erro: $e')),
+        error: (e, _) => Center(child: Text('Error: $e')),
         data: (trip) {
           if (trip == null) return const SizedBox.shrink();
           return daysAsync.when(
@@ -585,6 +628,17 @@ class _DaysStrip extends StatelessWidget {
                       color: selected ? scheme.onPrimary : scheme.onSurfaceVariant,
                     ),
                   ),
+                  if (d.dayRating != null) ...[
+                    const SizedBox(height: 2),
+                    Text(
+                      '★ ${d.dayRating}',
+                      style: TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w600,
+                        color: selected ? scheme.onPrimary : scheme.primary,
+                      ),
+                    ),
+                  ],
                 ],
               ),
             ),

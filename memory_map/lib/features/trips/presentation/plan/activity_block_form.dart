@@ -147,7 +147,7 @@ class _ActivityBlockFormState extends ConsumerState<ActivityBlockForm> {
             ),
             const SizedBox(height: 16),
             Text(
-              isEdit ? 'Editar bloco' : 'Novo bloco',
+              isEdit ? 'Edit block' : 'New block',
               style: Theme.of(context).textTheme.titleLarge,
             ),
             const SizedBox(height: 16),
@@ -158,7 +158,7 @@ class _ActivityBlockFormState extends ConsumerState<ActivityBlockForm> {
                     onTap: _pickStart,
                     borderRadius: BorderRadius.circular(12),
                     child: InputDecorator(
-                      decoration: const InputDecoration(labelText: 'Início'),
+                      decoration: const InputDecoration(labelText: 'Start'),
                       child: Text(_start.format(context)),
                     ),
                   ),
@@ -169,7 +169,7 @@ class _ActivityBlockFormState extends ConsumerState<ActivityBlockForm> {
                     onTap: _pickEnd,
                     borderRadius: BorderRadius.circular(12),
                     child: InputDecorator(
-                      decoration: const InputDecoration(labelText: 'Fim'),
+                      decoration: const InputDecoration(labelText: 'End'),
                       child: Text(_end.format(context)),
                     ),
                   ),
@@ -180,16 +180,16 @@ class _ActivityBlockFormState extends ConsumerState<ActivityBlockForm> {
             TextField(
               controller: _title,
               decoration: const InputDecoration(
-                labelText: 'Título',
-                hintText: 'Ex: Visita ao Coliseu',
+                labelText: 'Title',
+                hintText: 'e.g. Colosseum visit',
               ),
             ),
             const SizedBox(height: 12),
             TextField(
               controller: _location,
               decoration: const InputDecoration(
-                labelText: 'Localização',
-                hintText: 'Endereço ou referência',
+                labelText: 'Location',
+                hintText: 'Address or reference',
               ),
             ),
             const SizedBox(height: 12),
@@ -197,7 +197,7 @@ class _ActivityBlockFormState extends ConsumerState<ActivityBlockForm> {
               controller: _notes,
               maxLines: 4,
               decoration: const InputDecoration(
-                labelText: 'Notas',
+                labelText: 'Notes',
               ),
             ),
             const SizedBox(height: 20),
@@ -208,14 +208,14 @@ class _ActivityBlockFormState extends ConsumerState<ActivityBlockForm> {
                     child: OutlinedButton.icon(
                       onPressed: _saving ? null : _delete,
                       icon: const Icon(Icons.delete_outline),
-                      label: const Text('Apagar'),
+                      label: const Text('Delete'),
                     ),
                   ),
                 if (isEdit) const SizedBox(width: 12),
                 Expanded(
                   child: FilledButton(
                     onPressed: _saving ? null : _save,
-                    child: Text(_saving ? 'A guardar…' : 'Guardar'),
+                    child: Text(_saving ? 'Saving…' : 'Save'),
                   ),
                 ),
               ],
@@ -274,13 +274,13 @@ class _ScrollTimePickerSheetState extends State<_ScrollTimePickerSheet> {
               children: [
                 Expanded(
                   child: Text(
-                    'Selecionar hora',
+                    'Select time',
                     style: Theme.of(context).textTheme.titleLarge,
                   ),
                 ),
                 TextButton(
                   onPressed: () => Navigator.of(context).pop(),
-                  child: const Text('Cancelar'),
+                  child: const Text('Cancel'),
                 ),
                 FilledButton(
                   onPressed: () => Navigator.of(context).pop(

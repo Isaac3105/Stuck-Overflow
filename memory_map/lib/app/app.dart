@@ -12,6 +12,7 @@ class MemoryMapApp extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return MaterialApp.router(
+      locale: const Locale('en'),
       onGenerateTitle: (ctx) => AppLocalizations.of(ctx)!.appTitle,
       theme: AppTheme.light(),
       darkTheme: AppTheme.dark(),

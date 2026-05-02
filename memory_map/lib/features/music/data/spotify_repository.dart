@@ -18,28 +18,26 @@ class SpotifyRepository {
     required String countryCode,
   }) {
     final c = countryByCode(countryCode);
-    final namePt = c?.namePt ?? countryCode;
     final nameEn = c?.nameEn ?? countryCode;
+    final namePt = c?.namePt ?? countryCode;
 
-    // Mix PT + EN terms; keep queries short for better Spotify search relevance.
-    // Intentionally biased toward "local" / region-specific playlists.
+    // Mix EN + PT terms; keep queries short for better Spotify search relevance.
     final seeds = <String>[
-      namePt,
-      if (nameEn != namePt) nameEn,
+      nameEn,
+      if (namePt != nameEn) namePt,
     ];
 
     final suffixes = <String>[
-      'músicas locais',
-      'música local',
-      'música tradicional',
-      'música popular',
-      'hits',
-      'top hits',
       'local music',
       'traditional music',
       'folk',
+      'popular music',
+      'hits',
+      'top hits',
       'hits playlist',
       'top hits playlist',
+      'música local',
+      'música tradicional',
     ];
 
     final queries = <String>[];

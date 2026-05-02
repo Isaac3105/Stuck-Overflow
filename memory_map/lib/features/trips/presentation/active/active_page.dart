@@ -24,21 +24,21 @@ class ActivePage extends ConsumerWidget {
     final currentTrip = ref.watch(currentTripProvider);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Viagem atual')),
+      appBar: AppBar(title: const Text('Current trip')),
       body: currentTrip.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(child: Text('Erro: $e')),
+        error: (e, _) => Center(child: Text('Error: $e')),
         data: (trip) {
           if (trip == null) {
             return EmptyState(
               icon: Icons.flight_takeoff_outlined,
-              title: 'Nenhuma viagem em curso',
+              title: 'No active trip',
               message:
-                  'Quando uma viagem planeada incluir o dia de hoje, ela aparecerá aqui automaticamente.',
+                  'When a planned trip includes today, it will show up here automatically.',
               action: FilledButton.icon(
                 onPressed: () => context.go('/plan'),
                 icon: const Icon(Icons.map_outlined),
-                label: const Text('Ir ao planeamento'),
+                label: const Text('Go to planner'),
               ),
             );
           }
@@ -65,7 +65,7 @@ class _ActiveTripBody extends ConsumerWidget {
     final daysAsync = ref.watch(tripDaysProvider(tripId));
     return daysAsync.when(
       loading: () => const Center(child: CircularProgressIndicator()),
-      error: (e, _) => Center(child: Text('Erro: $e')),
+      error: (e, _) => Center(child: Text('Error: $e')),
       data: (days) {
         final today = DateTime.now();
         final todayKey = DateTime(today.year, today.month, today.day);
@@ -77,8 +77,8 @@ class _ActiveTripBody extends ConsumerWidget {
         if (day == null) {
           return const EmptyState(
             icon: Icons.event_busy_outlined,
-            title: 'Sem dia configurado',
-            message: 'A viagem está activa mas não há um dia para hoje.',
+            title: 'No day for today',
+            message: 'The trip is active but there is no itinerary day for today.',
           );
         }
         return _TodayView(
@@ -112,7 +112,7 @@ class _TodayView extends ConsumerWidget {
         );
     if (media == null) {
       messenger.showSnackBar(
-        const SnackBar(content: Text('Captura cancelada ou sem permissão.')),
+        const SnackBar(content: Text('Capture canceled or permission denied.')),
       );
     }
   }
@@ -124,7 +124,7 @@ class _TodayView extends ConsumerWidget {
     final playlistAsync =
         ref.watch(_selectedPlaylistProviderForTrip(tripId));
     final dateLabel =
-        DateFormat("EEEE, d 'de' MMMM", 'pt_PT').format(day.date);
+        DateFormat('EEEE, MMMM d', 'en').format(day.date);
 
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
@@ -162,25 +162,25 @@ class _TodayView extends ConsumerWidget {
               child: FilledButton.icon(
                 onPressed: () => _capturePhoto(context, ref),
                 icon: const Icon(Icons.photo_camera_outlined),
-                label: const Text('Tirar foto'),
+                label: const Text('Take photo'),
               ),
             ),
           ],
         ),
         const SizedBox(height: 20),
-        Text('Itinerário de hoje',
+        Text("Today's itinerary",
             style: Theme.of(context).textTheme.titleMedium),
         const SizedBox(height: 8),
         blocksAsync.when(
           loading: () => const Center(child: CircularProgressIndicator()),
-          error: (e, _) => Text('Erro: $e'),
+          error: (e, _) => Text('Error: $e'),
           data: (blocks) {
             if (blocks.isEmpty) {
               return Card(
                 child: Padding(
                   padding: const EdgeInsets.all(16),
                   child: Text(
-                    'Sem blocos para hoje. Adiciona-os no planeador.',
+                    'No blocks for today. Add them in the planner.',
                     style: Theme.of(context).textTheme.bodyMedium,
                   ),
                 ),
@@ -197,19 +197,19 @@ class _TodayView extends ConsumerWidget {
           },
         ),
         const SizedBox(height: 20),
-        Text('Capturas de hoje',
+        Text("Today's captures",
             style: Theme.of(context).textTheme.titleMedium),
         const SizedBox(height: 8),
         mediaAsync.when(
           loading: () => const Center(child: CircularProgressIndicator()),
-          error: (e, _) => Text('Erro: $e'),
+          error: (e, _) => Text('Error: $e'),
           data: (media) {
             if (media.isEmpty) {
               return Card(
                 child: Padding(
                   padding: const EdgeInsets.all(16),
                   child: Text(
-                    'Ainda sem fotos ou áudios para hoje.',
+                    'No photos or audio for today yet.',
                     style: Theme.of(context).textTheme.bodyMedium,
                   ),
                 ),
@@ -247,7 +247,7 @@ class _TodayView extends ConsumerWidget {
                         padding: const EdgeInsets.symmetric(vertical: 4),
                         child: AudioPlayerTile(
                           filePath: a.filePath,
-                          label: 'Áudio às ${DateFormat('HH:mm').format(a.takenAt)}',
+                          label: 'Audio at ${DateFormat('HH:mm').format(a.takenAt)}',
                         ),
                       )),
                 ],
