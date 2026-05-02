@@ -9,9 +9,9 @@ void main() {
     await tester.pump();
 
     expect(find.text('Home'), findsWidgets);
-    expect(find.text('Planear'), findsWidgets);
-    expect(find.text('Atual'), findsWidgets);
-    expect(find.text('Viagens'), findsWidgets);
-    expect(find.text('Memórias'), findsWidgets);
+    expect(find.text('Plan'), findsWidgets);
+    expect(find.text('Current'), findsWidgets);
+    expect(find.text('My Trips'), findsWidgets);
+    expect(find.text('Memories'), findsWidgets);
   });
 }
