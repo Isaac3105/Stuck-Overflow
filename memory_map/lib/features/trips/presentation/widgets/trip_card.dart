@@ -4,7 +4,7 @@ import 'package:flag/flag.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
-import '../../../../core/data/countries.dart';
+import '../../../../core/data/geography.dart';
 import '../../domain/trip.dart';
 
 class TripCard extends StatelessWidget {
@@ -23,15 +23,10 @@ class TripCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final range =
         '${DateFormat('dd/MM/yy', 'en').format(trip.startDate)} - ${DateFormat('dd/MM/yy', 'en').format(trip.endDate)}';
-    
-    final locationParts = <String>[];
-    if (trip.countries.isNotEmpty) {
-      locationParts.add(countryNameEn(trip.countries.first));
-    }
-    if (trip.cities.isNotEmpty) {
-      locationParts.add(trip.cities.first);
-    }
-    final subtitle = locationParts.join(', ');
+    final subtitle = [
+      if (trip.countries.isNotEmpty) resolveGeography(trip.countries.first)?.name ?? trip.countries.first,
+      if (trip.cities.isNotEmpty) trip.cities.first,
+    ].join(', ');
 
     return Card(
       clipBehavior: Clip.antiAlias,
@@ -66,74 +61,57 @@ class TripCard extends StatelessWidget {
               left: 12,
               top: 12,
               right: 12,
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  Wrap(
-                    spacing: 4,
-                    children: trip.countries
-                        .take(4)
-                        .map(
-                          (c) => ClipRRect(
-                            borderRadius: BorderRadius.circular(3),
-                            child: SizedBox(
-                              width: 24,
-                              height: 16,
-                              child: Flag.fromString(c, fit: BoxFit.cover),
-                            ),
-                          ),
-                        )
-                        .toList(),
-                  ),
-                  if (subtitle.isNotEmpty) ...[
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        subtitle,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 13,
-                          shadows: [
-                            Shadow(
-                              color: Colors.black45,
-                              blurRadius: 4,
-                              offset: Offset(2, 2),
-                            ),
-                          ],
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                  ],
-                ],
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.all(12.0),
               child: Column(
-                mainAxisAlignment: MainAxisAlignment.end,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    trip.name,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w900,
-                      fontSize: 24,
-                      shadows: [
-                        Shadow(
-                          color: Colors.black45,
-                          blurRadius: 4,
-                          offset: Offset(2, 2),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      Wrap(
+                        spacing: 4,
+                        children: trip.countries
+                            .take(4)
+                            .map(
+                              (name) {
+                                final code = resolveGeography(name)?.code;
+                                if (code == null) return const SizedBox.shrink();
+                                return ClipRRect(
+                                  borderRadius: BorderRadius.circular(3),
+                                  child: SizedBox(
+                                    width: 24,
+                                    height: 16,
+                                    child: Flag.fromString(code, fit: BoxFit.cover),
+                                  ),
+                                );
+                              },
+                            )
+                            .toList(),
+                      ),
+                      if (subtitle.isNotEmpty) ...[
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            subtitle,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 13,
+                              shadows: [
+                                Shadow(
+                                  color: Colors.black45,
+                                  blurRadius: 4,
+                                  offset: Offset(2, 2),
+                                ),
+                              ],
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
                         ),
                       ],
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
+                    ],
                   ),
-                  const SizedBox(height: 2),
+                  const SizedBox(height: 4),
                   Text(
                     range,
                     style: const TextStyle(
@@ -143,6 +121,67 @@ class TripCard extends StatelessWidget {
                     ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.all(12.0),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.end,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Expanded(
+                        child: Text(
+                          trip.name,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w900,
+                            fontSize: 24,
+                            shadows: [
+                              Shadow(
+                                color: Colors.black45,
+                                blurRadius: 4,
+                                offset: Offset(2, 2),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            trip.averageDayRating != null
+                                ? '${NumberFormat('#0.0', 'en').format(trip.averageDayRating)}'
+                                : '--',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 14,
+                              fontWeight: FontWeight.bold,
+                              shadows: [
+                                Shadow(
+                                  color: Colors.black45,
+                                  blurRadius: 4,
+                                  offset: Offset(2, 2),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: 4),
+                          const Icon(
+                            Icons.star_rounded,
+                            color: Colors.amber,
+                            size: 16,
+                          ),
+                        ],
+                      ),
+                    ],
                   ),
                 ],
               ),

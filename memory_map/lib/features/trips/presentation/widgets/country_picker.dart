@@ -1,7 +1,7 @@
 import 'package:flag/flag.dart';
 import 'package:flutter/material.dart';
 
-import '../../../../core/data/countries.dart';
+import '../../../../core/data/geography.dart';
 
 class CountryPickerField extends StatefulWidget {
   const CountryPickerField({
@@ -45,7 +45,7 @@ class _CountryPickerFieldState extends State<CountryPickerField> {
                 spacing: 6,
                 runSpacing: 6,
                 children: widget.selected
-                    .map((c) => _CountryChip(code: c))
+                    .map((name) => _CountryChip(name: name))
                     .toList(),
               ),
       ),
@@ -54,10 +54,11 @@ class _CountryPickerFieldState extends State<CountryPickerField> {
 }
 
 class _CountryChip extends StatelessWidget {
-  const _CountryChip({required this.code});
-  final String code;
+  const _CountryChip({required this.name});
+  final String name;
   @override
   Widget build(BuildContext context) {
+    final entry = geographyByName(name);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
@@ -67,13 +68,14 @@ class _CountryChip extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          SizedBox(
-            width: 18,
-            height: 12,
-            child: Flag.fromString(code, fit: BoxFit.cover),
-          ),
+          if (entry != null)
+            SizedBox(
+              width: 18,
+              height: 12,
+              child: Flag.fromString(entry.code, fit: BoxFit.cover),
+            ),
           const SizedBox(width: 6),
-          Text(countryNameEn(code)),
+          Text(name),
         ],
       ),
     );
@@ -95,7 +97,7 @@ class _CountrySearchSheetState extends State<_CountrySearchSheet> {
   @override
   Widget build(BuildContext context) {
     final filtered =
-        kCountries.where((c) => c.matches(_query)).toList(growable: false);
+        kGeography.where((c) => c.matches(_query)).toList(growable: false);
     return DraggableScrollableSheet(
       initialChildSize: 0.85,
       maxChildSize: 0.95,
@@ -124,14 +126,14 @@ class _CountrySearchSheetState extends State<_CountrySearchSheet> {
                 itemCount: filtered.length,
                 itemBuilder: (_, i) {
                   final c = filtered[i];
-                  final selected = _selected.contains(c.code);
+                  final selected = _selected.contains(c.name);
                   return CheckboxListTile(
                     value: selected,
                     onChanged: (v) => setState(() {
                       if (v == true) {
-                        _selected.add(c.code);
+                        _selected.add(c.name);
                       } else {
-                        _selected.remove(c.code);
+                        _selected.remove(c.name);
                       }
                     }),
                     title: Row(
@@ -142,7 +144,7 @@ class _CountrySearchSheetState extends State<_CountrySearchSheet> {
                           child: Flag.fromString(c.code, fit: BoxFit.cover),
                         ),
                         const SizedBox(width: 12),
-                        Expanded(child: Text(c.nameEn)),
+                        Expanded(child: Text(c.name)),
                       ],
                     ),
                   );
