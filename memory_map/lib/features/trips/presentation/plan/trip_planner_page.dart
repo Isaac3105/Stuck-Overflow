@@ -65,6 +65,12 @@ class _TripPlannerPageState extends ConsumerState<TripPlannerPage> {
     final daysAsync = ref.watch(tripDaysProvider(widget.tripId));
 
     return Scaffold(
+      endDrawer: (tripAsync.valueOrNull != null && daysAsync.valueOrNull != null && daysAsync.valueOrNull!.isNotEmpty)
+          ? _SuggestionsSidebar(
+              trip: tripAsync.valueOrNull,
+              dayId: daysAsync.valueOrNull![_selectedDayIndex.clamp(0, daysAsync.valueOrNull!.length - 1)].id,
+            )
+          : null,
       appBar: AppBar(
         scrolledUnderElevation: 0,
         title: tripAsync.maybeWhen(
@@ -72,6 +78,13 @@ class _TripPlannerPageState extends ConsumerState<TripPlannerPage> {
           orElse: () => const Text('Viagem'),
         ),
         actions: [
+          Builder(
+            builder: (context) => IconButton(
+              icon: const Icon(Icons.auto_awesome),
+              tooltip: 'Sugestões',
+              onPressed: () => Scaffold.of(context).openEndDrawer(),
+            ),
+          ),
           PopupMenuButton<String>(
             onSelected: (v) {
               if (v == 'delete') _confirmDelete();
@@ -103,20 +116,6 @@ class _TripPlannerPageState extends ConsumerState<TripPlannerPage> {
               return Column(
                 children: [
                   _TripHeader(trip: trip),
-                  if (Env.hasSpotify && trip.countries.isNotEmpty)
-                    _SpotifySuggestions(
-                      tripId: trip.id,
-                      country: trip.countries.first,
-                    ),
-                  if (Env.hasGemini &&
-                      trip.countries.isNotEmpty &&
-                      trip.cities.isNotEmpty &&
-                      days.isNotEmpty)
-                    _GeminiSuggestions(
-                      country: trip.countries.first,
-                      city: trip.cities.first,
-                      dayId: days[_selectedDayIndex.clamp(0, days.length - 1)].id,
-                    ),
                   _DaysStrip(
                     days: days,
                     selectedIndex: _selectedDayIndex.clamp(0, days.length - 1),
@@ -647,6 +646,56 @@ class _DayBlocksList extends ConsumerWidget {
           ],
         );
       },
+    );
+  }
+}
+
+class _SuggestionsSidebar extends StatelessWidget {
+  const _SuggestionsSidebar({
+    required this.trip,
+    required this.dayId,
+  });
+
+  final dynamic trip;
+  final String dayId;
+
+  @override
+  Widget build(BuildContext context) {
+    return Drawer(
+      width: MediaQuery.sizeOf(context).width * 0.88,
+      child: SafeArea(
+        child: ListView(
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+              child: Row(
+                children: [
+                  const Icon(Icons.auto_awesome),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Sugestões',
+                    style: Theme.of(context).textTheme.headlineSmall,
+                  ),
+                ],
+              ),
+            ),
+            if (Env.hasSpotify && trip.countries.isNotEmpty)
+              _SpotifySuggestions(
+                tripId: trip.id,
+                country: trip.countries.first,
+              ),
+            if (Env.hasGemini &&
+                trip.countries.isNotEmpty &&
+                trip.cities.isNotEmpty)
+              _GeminiSuggestions(
+                country: trip.countries.first,
+                city: trip.cities.first,
+                dayId: dayId,
+              ),
+          ],
+        ),
+      ),
     );
   }
 }
