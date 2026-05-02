@@ -116,7 +116,7 @@ class _CurrentTripBodyState extends ConsumerState<_CurrentTripBody> {
         return ListView(
           padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
           children: [
-            _HeaderCard(trip: widget.trip, dateLabel: dateLabel, dayId: day.id),
+            _HeaderCard(trip: widget.trip, dateLabel: dateLabel, day: day),
             const SizedBox(height: 10),
             OutlinedButton.icon(
               onPressed: () => _endDayAndRate(context, day),
@@ -238,6 +238,7 @@ class _CurrentTripBodyState extends ConsumerState<_CurrentTripBody> {
       },
     );
   }
+
 
   Future<void> _offerMandatoryRating(TripDay day) async {
     if (!mounted || _mandatoryRatingInFlight) return;
@@ -461,30 +462,39 @@ class _PlaylistCard extends ConsumerWidget {
             ),
     );
   }
+
 }
 
 class _HeaderCard extends ConsumerWidget {
   const _HeaderCard({
     required this.trip,
     required this.dateLabel,
-    required this.dayId,
+    required this.day,
   });
 
   final Trip trip;
   final String dateLabel;
-  final String dayId;
+  final TripDay day;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final mediaAsync = ref.watch(dayMediaProvider(dayId));
+    final mediaAsync = ref.watch(dayMediaProvider(day.id));
     final cover = mediaAsync.maybeWhen(
-      data: (media) => media
-          .where((m) => m.type == MediaType.photo)
-          .cast<MediaItem?>()
-          .firstWhere(
-            (_) => true,
-            orElse: () => null,
-          ),
+      data: (media) {
+        if (day.coverMediaId != null) {
+          final found = media
+              .where((m) => m.id == day.coverMediaId)
+              .firstOrNull;
+          if (found != null) return found;
+        }
+        return media
+            .where((m) => m.type == MediaType.photo)
+            .cast<MediaItem?>()
+            .firstWhere(
+              (_) => true,
+              orElse: () => null,
+            );
+      },
       orElse: () => null,
     );
 
@@ -622,8 +632,11 @@ class _CapturesSection extends StatelessWidget {
                       filePath: photos[i].filePath,
                       onTap: () => Navigator.of(context).push(
                         MaterialPageRoute(
-                          builder: (_) =>
-                              PhotoViewerPage(filePath: photos[i].filePath),
+                          builder: (_) => PhotoViewerPage(
+                            filePath: photos[i].filePath,
+                            dayId: dayId,
+                            mediaId: photos[i].id,
+                          ),
                         ),
                       ),
                     ),
@@ -648,6 +661,7 @@ class _CapturesSection extends StatelessWidget {
     );
   }
 }
+
 
 final _selectedPlaylistProviderForTrip =
     StreamProvider.autoDispose.family((ref, String tripId) {
