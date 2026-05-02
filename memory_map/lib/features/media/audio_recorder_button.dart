@@ -13,6 +13,7 @@ class AudioRecorderButton extends ConsumerStatefulWidget {
     this.activityBlockId,
     this.label = 'Record audio',
     this.onRecorded,
+    this.enabled = true,
   });
 
   final String tripId;
@@ -20,6 +21,7 @@ class AudioRecorderButton extends ConsumerStatefulWidget {
   final String? activityBlockId;
   final String label;
   final ValueChanged<String /* mediaId */>? onRecorded;
+  final bool enabled;
 
   @override
   ConsumerState<AudioRecorderButton> createState() =>
@@ -95,7 +97,7 @@ class _AudioRecorderButtonState extends ConsumerState<AudioRecorderButton> {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     return FilledButton.icon(
-      onPressed: _toggle,
+      onPressed: widget.enabled ? _toggle : null,
       style: FilledButton.styleFrom(
         backgroundColor: _recording ? scheme.error : scheme.primary,
         foregroundColor:

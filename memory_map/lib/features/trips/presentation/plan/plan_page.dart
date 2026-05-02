@@ -24,7 +24,7 @@ class PlanPage extends ConsumerWidget {
         data: (trips) {
           final now = DateTime.now();
           final upcoming = trips
-              .where((t) => t.resolvedStatus(now) != TripStatus.completed)
+              .where((t) => t.resolvedStatus(now) == TripStatus.planning)
               .toList();
           if (upcoming.isEmpty) {
             return EmptyState(
