@@ -239,7 +239,10 @@ class _DaySection extends ConsumerWidget {
           mediaAsync.maybeWhen(
             data: (media) {
               final photos =
-                  media.where((m) => m.type == MediaType.photo).toList();
+                  media
+                      .where((m) =>
+                          m.type == MediaType.photo || m.type == MediaType.video)
+                      .toList();
               final audios =
                   media.where((m) => m.type == MediaType.audio).toList();
               if (photos.isEmpty && audios.isEmpty) {
@@ -260,11 +263,13 @@ class _DaySection extends ConsumerWidget {
                               const SizedBox(width: 8),
                           itemBuilder: (_, i) => SizedBox(
                             width: 96,
-                            child: PhotoThumbnail(
+                            child: MediaThumbnail(
+                              type: photos[i].type,
                               filePath: photos[i].filePath,
                               onTap: () =>
                                   Navigator.of(context).push(MaterialPageRoute(
-                                builder: (_) => PhotoViewerPage(
+                                builder: (_) => MediaViewerPage(
+                                  type: photos[i].type,
                                   filePath: photos[i].filePath,
                                 ),
                               )),

@@ -1,5 +1,3 @@
-import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -17,7 +15,6 @@ import '../../domain/day.dart';
 import '../../domain/media.dart';
 import '../../domain/trip.dart';
 import '../../domain/trip_itinerary_unlock.dart';
-import '../plan/activity_block_form.dart';
 import '../widgets/activity_block_tile.dart';
 import '../widgets/day_rating_sheet.dart';
 import '../widgets/days_strip.dart';
@@ -73,6 +70,8 @@ class _CurrentTripBody extends ConsumerStatefulWidget {
   ConsumerState<_CurrentTripBody> createState() => _CurrentTripBodyState();
 }
 
+enum _CaptureAction { takePhoto, recordVideo, pickPhoto, pickVideo }
+
 class _CurrentTripBodyState extends ConsumerState<_CurrentTripBody> {
   bool _mandatoryRatingInFlight = false;
   int? _selectedDayIndex;
@@ -110,7 +109,6 @@ class _CurrentTripBodyState extends ConsumerState<_CurrentTripBody> {
 
         final now = DateTime.now();
         final unlockedDay = unlockedItineraryDay(days, now);
-        final ratedToday = todayRatedDay(days, now);
 
         final resolvedIndex = _selectedDayIndex ??
             (unlockedDay != null ? days.indexOf(unlockedDay) : days.length - 1);
@@ -132,7 +130,6 @@ class _CurrentTripBodyState extends ConsumerState<_CurrentTripBody> {
         final mediaAsync = ref.watch(dayMediaProvider(day.id));
         final dateLabel =
             DateFormat('EEEE, MMMM d', 'en').format(day.date);
-        final isRated = day.dayRating != null;
 
         return Scaffold(
           appBar: AppBar(
@@ -232,9 +229,10 @@ class _CurrentTripBodyState extends ConsumerState<_CurrentTripBody> {
               children: [
                 Expanded(
                   child: FilledButton.icon(
-                    onPressed: mediaEnabled ? () => _showAddPhotoSheet(context, day.id) : null,
+                    onPressed:
+                        mediaEnabled ? () => _captureMedia(context, day.id) : null,
                     icon: const Icon(Icons.camera_alt_outlined),
-                    label: const Text('Add photo'),
+                    label: const Text('Add media'),
                   ),
                 ),
                 const SizedBox(width: 5),
@@ -337,46 +335,66 @@ class _CurrentTripBodyState extends ConsumerState<_CurrentTripBody> {
     }
   }
 
-  Future<void> _confirmUndoTodayRating(
-    BuildContext context,
-    TripDay ratedToday,
-  ) async {
-    final ok = await showDialog<bool>(
+  Future<void> _captureMedia(BuildContext context, String dayId) async {
+    final messenger = ScaffoldMessenger.of(context);
+    final action = await showModalBottomSheet<_CaptureAction>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Undo rating?'),
-        content: const Text(
-          'Your rating for this day will be removed and you will see today’s itinerary again.',
+      showDragHandle: true,
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const ListTile(
+              title: Text('Add to this day'),
+              subtitle: Text('Choose what you want to capture or pick.'),
+            ),
+            ListTile(
+              leading: const Icon(Icons.photo_camera_outlined),
+              title: const Text('Take photo'),
+              onTap: () => Navigator.of(ctx).pop(_CaptureAction.takePhoto),
+            ),
+            ListTile(
+              leading: const Icon(Icons.videocam_outlined),
+              title: const Text('Record video'),
+              onTap: () => Navigator.of(ctx).pop(_CaptureAction.recordVideo),
+            ),
+            const Divider(height: 0),
+            ListTile(
+              leading: const Icon(Icons.photo_library_outlined),
+              title: const Text('Pick photo from gallery'),
+              onTap: () => Navigator.of(ctx).pop(_CaptureAction.pickPhoto),
+            ),
+            ListTile(
+              leading: const Icon(Icons.video_library_outlined),
+              title: const Text('Pick video from gallery'),
+              onTap: () => Navigator.of(ctx).pop(_CaptureAction.pickVideo),
+            ),
+            const SizedBox(height: 8),
+          ],
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(false),
-            child: const Text('Cancel'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.of(ctx).pop(true),
-            child: const Text('Undo'),
-          ),
-        ],
       ),
     );
-    if (ok != true) return;
-    await ref.read(tripRepositoryProvider).clearDayRating(ratedToday.id);
-    if (context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Rating cleared.')),
-      );
-    }
-  }
+    if (action == null) return;
 
-
-
-  Future<void> _capturePhoto(BuildContext context, String dayId) async {
-    final messenger = ScaffoldMessenger.of(context);
-    final media = await ref.read(mediaCaptureServiceProvider).capturePhoto(
+    final svc = ref.read(mediaCaptureServiceProvider);
+    final media = switch (action) {
+      _CaptureAction.takePhoto => await svc.capturePhoto(
           tripId: widget.trip.id,
           dayId: dayId,
-        );
+        ),
+      _CaptureAction.recordVideo => await svc.captureVideo(
+          tripId: widget.trip.id,
+          dayId: dayId,
+        ),
+      _CaptureAction.pickPhoto => await svc.pickPhotoFromGallery(
+          tripId: widget.trip.id,
+          dayId: dayId,
+        ),
+      _CaptureAction.pickVideo => await svc.pickVideoFromGallery(
+          tripId: widget.trip.id,
+          dayId: dayId,
+        ),
+    };
     if (media == null) {
       messenger.showSnackBar(
         const SnackBar(content: Text('Capture canceled or permission denied.')),
@@ -395,36 +413,6 @@ class _CurrentTripBodyState extends ConsumerState<_CurrentTripBody> {
         const SnackBar(content: Text('Picking canceled or permission denied.')),
       );
     }
-  }
-
-  void _showAddPhotoSheet(BuildContext context, String dayId) {
-    showModalBottomSheet(
-      context: context,
-      showDragHandle: true,
-      builder: (ctx) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              leading: const Icon(Icons.photo_camera_outlined),
-              title: const Text('Take photo'),
-              onTap: () {
-                Navigator.pop(ctx);
-                _capturePhoto(context, dayId);
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.photo_library_outlined),
-              title: const Text('Pick from gallery'),
-              onTap: () {
-                Navigator.pop(ctx);
-                _pickFromGallery(context, dayId);
-              },
-            ),
-          ],
-        ),
-      ),
-    );
   }
 
   Future<void> _confirmTerminateTrip(BuildContext context) async {
@@ -483,7 +471,7 @@ class _HeaderCard extends ConsumerWidget {
           if (found != null) return found;
         }
         return media
-            .where((m) => m.type == MediaType.photo)
+            .where((m) => m.type == MediaType.photo || m.type == MediaType.video)
             .cast<MediaItem?>()
             .firstWhere(
               (_) => true,
@@ -515,9 +503,10 @@ class _HeaderCard extends ConsumerWidget {
           fit: StackFit.expand,
           children: [
             if (cover != null)
-              Image.file(
-                File(cover.filePath),
-                fit: BoxFit.cover,
+              MediaThumbnail(
+                type: cover.type,
+                filePath: cover.filePath,
+                borderRadius: 0,
               )
             else
               Container(
@@ -635,7 +624,9 @@ class _CapturesSection extends ConsumerWidget {
                 ),
               );
             }
-            final photos = media.where((m) => m.type == MediaType.photo).toList();
+            final photos = media
+                .where((m) => m.type == MediaType.photo || m.type == MediaType.video)
+                .toList();
             final audios = media.where((m) => m.type == MediaType.audio).toList();
             return Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -650,11 +641,13 @@ class _CapturesSection extends ConsumerWidget {
                       mainAxisSpacing: 8,
                     ),
                     itemCount: photos.length,
-                    itemBuilder: (_, i) => PhotoThumbnail(
+                    itemBuilder: (_, i) => MediaThumbnail(
+                      type: photos[i].type,
                       filePath: photos[i].filePath,
                       onTap: () => Navigator.of(context).push(
                         MaterialPageRoute(
-                          builder: (_) => PhotoViewerPage(
+                          builder: (_) => MediaViewerPage(
+                            type: photos[i].type,
                             filePath: photos[i].filePath,
                             dayId: dayId,
                             mediaId: photos[i].id,

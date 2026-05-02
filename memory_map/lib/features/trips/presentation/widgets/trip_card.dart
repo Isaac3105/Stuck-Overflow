@@ -1,10 +1,10 @@
-import 'dart:io';
-
 import 'package:flag/flag.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 import '../../../../core/data/geography.dart';
+import '../../../media/photo_thumbnail.dart';
+import '../../domain/media.dart';
 import '../../domain/trip.dart';
 
 /// [cover] — photo hero when [coverImagePath] is set; otherwise same text card
@@ -17,13 +17,13 @@ class TripCard extends StatelessWidget {
     super.key,
     required this.trip,
     required this.onTap,
-    this.coverImagePath,
+    this.coverMedia,
     this.layout = TripCardLayout.cover,
   });
 
   final Trip trip;
   final VoidCallback onTap;
-  final String? coverImagePath;
+  final MediaItem? coverMedia;
   final TripCardLayout layout;
 
   @override
@@ -31,7 +31,7 @@ class TripCard extends StatelessWidget {
     if (layout == TripCardLayout.plan) {
       return _buildTextLayout(context, showRating: false);
     }
-    if (coverImagePath != null) {
+    if (coverMedia != null) {
       return _buildCoverLayout(context);
     }
     return _buildTextLayout(context, showRating: true);
@@ -188,8 +188,12 @@ class TripCard extends StatelessWidget {
         child: Stack(
           fit: StackFit.expand,
           children: [
-            if (coverImagePath != null)
-              Image.file(File(coverImagePath!), fit: BoxFit.cover)
+            if (coverMedia != null)
+              MediaThumbnail(
+                type: coverMedia!.type,
+                filePath: coverMedia!.filePath,
+                borderRadius: 0,
+              )
             else
               Container(
                 color: Theme.of(context).colorScheme.surfaceContainerHigh,

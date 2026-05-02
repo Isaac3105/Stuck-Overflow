@@ -9,10 +9,15 @@ import '../features/trips/presentation/plan/trip_planner_page.dart';
 import '../features/trips/presentation/timeline/timeline_page.dart';
 import '../features/trips/presentation/archive/my_trips_page.dart';
 import '../features/trips/presentation/archive/trip_result_page.dart';
+import '../features/common/presentation/pages/splash_screen.dart';
 
 final appRouter = GoRouter(
-  initialLocation: '/home',
+  initialLocation: '/splash',
   routes: [
+    GoRoute(
+      path: '/splash',
+      builder: (context, state) => const SplashScreen(),
+    ),
     StatefulShellRoute.indexedStack(
       builder: (context, state, navigationShell) =>
           _RootShell(shell: navigationShell),

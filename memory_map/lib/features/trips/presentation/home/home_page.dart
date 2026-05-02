@@ -1,10 +1,9 @@
-import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
 import '../widgets/empty_state.dart';
+import '../../../media/photo_thumbnail.dart';
 import 'home_providers.dart';
 import 'memory_preview_map.dart';
 import 'story_player_page.dart';
@@ -91,17 +90,6 @@ class _HomePageState extends ConsumerState<HomePage> {
                   },
                 ),
               ),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
-                child: Text(
-                  'Tip: you can record audios during the trip and they can serve as a "background sound" for the memories.',
-                  textAlign: TextAlign.center,
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: Theme.of(context).colorScheme.onSurfaceVariant,
-                        height: 1.35,
-                      ),
-                ),
-              ),
             ],
           );
         },
@@ -120,7 +108,8 @@ class _FeaturedCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final cover = data.coverImagePath;
+    final coverPath = data.coverFilePath;
+    final coverType = data.coverType;
     final df = DateFormat('d MMM yyyy', 'en');
     final period =
         '${df.format(data.trip.startDate)} → ${df.format(data.trip.endDate)}';
@@ -150,20 +139,11 @@ class _FeaturedCard extends StatelessWidget {
                 child: Stack(
                   fit: StackFit.expand,
                   children: [
-                    if (cover != null)
-                      Image.file(
-                        File(cover),
-                        fit: BoxFit.cover,
-                        alignment: Alignment.topCenter,
-                        errorBuilder: (ctx, err, st) => ColoredBox(
-                          color: scheme.surfaceContainerHighest,
-                          child: Icon(
-                            Icons.image_outlined,
-                            size: 56,
-                            color: scheme.onSurfaceVariant
-                                .withValues(alpha: 0.45),
-                          ),
-                        ),
+                    if (coverPath != null && coverType != null)
+                      MediaThumbnail(
+                        type: coverType,
+                        filePath: coverPath,
+                        borderRadius: 0,
                       )
                     else
                       ColoredBox(
