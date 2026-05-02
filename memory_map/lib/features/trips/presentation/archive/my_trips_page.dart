@@ -14,7 +14,15 @@ import '../../domain/trip.dart';
 import '../home/home_providers.dart';
 import '../home/story_player_page.dart';
 
-enum _MyTripsSort { date, rating, country }
+enum _MyTripsViewMode { chronological, groupCountry, groupRating }
+
+const _kMultiCountryGroupKey = '__multi__';
+
+class _TripGroup {
+  const _TripGroup({required this.title, required this.trips});
+  final String title;
+  final List<Trip> trips;
+}
 
 class _MyTripsFilterState {
   const _MyTripsFilterState({
@@ -37,19 +45,18 @@ class MyTrips extends ConsumerStatefulWidget {
 
 class _MyTripsState extends ConsumerState<MyTrips> {
   String _searchQuery = '';
-  _MyTripsSort _sort = _MyTripsSort.date;
-  bool _sortAscending = false;
+  _MyTripsViewMode _viewMode = _MyTripsViewMode.chronological;
+  bool _chronologicalAscending = false;
   _MyTripsFilterState _filters = const _MyTripsFilterState();
 
-  List<Trip> _visibleTrips(List<Trip> all, DateTime now) {
-    final completed = all
+  List<Trip> _filteredTrips(List<Trip> all, DateTime now) {
+    return all
         .where((t) => t.resolvedStatus(now) == TripStatus.completed)
         .where((t) => _matchesSearch(t, _searchQuery))
         .where((t) => _matchesRating(t, _filters.ratingRange))
         .where((t) => _matchesDestination(t, _filters.destinationQuery))
         .where((t) => _matchesDateRange(t, _filters.dateRange))
         .toList(growable: false);
-    return _sortTrips(completed, _sort, _sortAscending);
   }
 
   @override
@@ -61,7 +68,10 @@ class _MyTripsState extends ConsumerState<MyTrips> {
       error: (e, _) => Center(child: Text('Error: $e')),
       data: (trips) {
         final now = DateTime.now();
-        final visible = _visibleTrips(trips, now);
+        final filtered = _filteredTrips(trips, now);
+        final chronologicalOrdered = _viewMode == _MyTripsViewMode.chronological
+            ? _sortTripsChronological(filtered, _chronologicalAscending)
+            : const <Trip>[];
 
         return SafeArea(
           child: Column(
@@ -83,8 +93,8 @@ class _MyTripsState extends ConsumerState<MyTrips> {
                     const SizedBox(width: 8),
                     _buildActionButton(
                       context,
-                      icon: Icons.sort,
-                      onPressed: () => _showSortSheet(context),
+                      icon: Icons.view_list,
+                      onPressed: () => _showViewModeSheet(context),
                     ),
                     const SizedBox(width: 8),
                     _buildActionButton(
@@ -96,22 +106,32 @@ class _MyTripsState extends ConsumerState<MyTrips> {
                 ),
               ),
               Expanded(
-                child: visible.isEmpty
+                child: filtered.isEmpty
                     ? const Center(child: Text('No completed trips.'))
-                    : GridView.builder(
-                        padding: const EdgeInsets.symmetric(horizontal: 16),
-                        physics: const ClampingScrollPhysics(),
-                        gridDelegate:
-                            const SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: 2,
-                          crossAxisSpacing: 16,
-                          mainAxisSpacing: 16,
-                          childAspectRatio: 0.85,
-                        ),
-                        itemCount: visible.length,
-                        itemBuilder: (context, index) =>
-                            _TripCard(trip: visible[index]),
-                      ),
+                    : _viewMode == _MyTripsViewMode.chronological
+                        ? GridView.builder(
+                            padding: const EdgeInsets.symmetric(horizontal: 16),
+                            physics: const ClampingScrollPhysics(),
+                            gridDelegate:
+                                const SliverGridDelegateWithFixedCrossAxisCount(
+                              crossAxisCount: 2,
+                              crossAxisSpacing: 16,
+                              mainAxisSpacing: 16,
+                              childAspectRatio: 0.85,
+                            ),
+                            itemCount: chronologicalOrdered.length,
+                            itemBuilder: (context, index) =>
+                                _TripCard(trip: chronologicalOrdered[index]),
+                          )
+                        : CustomScrollView(
+                            physics: const ClampingScrollPhysics(),
+                            slivers: _buildGroupedTripSlivers(
+                              context,
+                              _viewMode == _MyTripsViewMode.groupCountry
+                                  ? _groupTripsByCountry(filtered)
+                                  : _groupTripsByRating(filtered),
+                            ),
+                          ),
               ),
             ],
           ),
@@ -138,8 +158,8 @@ class _MyTripsState extends ConsumerState<MyTrips> {
     );
   }
 
-  Future<void> _showSortSheet(BuildContext context) async {
-    final chosen = await showModalBottomSheet<_MyTripsSort>(
+  Future<void> _showViewModeSheet(BuildContext context) async {
+    final chosen = await showModalBottomSheet<_MyTripsViewMode>(
       context: context,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
@@ -152,33 +172,37 @@ class _MyTripsState extends ConsumerState<MyTrips> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               const Text(
-                'Sort by',
+                'View',
                 style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Inside each group, trips are ordered by end date (newest first).',
+                style: Theme.of(ctx).textTheme.bodySmall,
               ),
               const SizedBox(height: 16),
               ListTile(
                 leading: const Icon(Icons.calendar_today),
-                title: const Text('Date'),
-                trailing: _sort == _MyTripsSort.date
-                    ? Icon(_sortAscending ? Icons.arrow_upward : Icons.arrow_downward)
+                title: const Text('Timeline'),
+                subtitle: const Text('Flat grid by end date'),
+                trailing: _viewMode == _MyTripsViewMode.chronological
+                    ? Icon(
+                        _chronologicalAscending
+                            ? Icons.arrow_upward
+                            : Icons.arrow_downward,
+                      )
                     : null,
-                onTap: () => Navigator.pop(ctx, _MyTripsSort.date),
+                onTap: () => Navigator.pop(ctx, _MyTripsViewMode.chronological),
               ),
               ListTile(
                 leading: const Icon(Icons.language),
-                title: const Text('Country'),
-                trailing: _sort == _MyTripsSort.country
-                    ? Icon(_sortAscending ? Icons.arrow_upward : Icons.arrow_downward)
-                    : null,
-                onTap: () => Navigator.pop(ctx, _MyTripsSort.country),
+                title: const Text('Group by country'),
+                onTap: () => Navigator.pop(ctx, _MyTripsViewMode.groupCountry),
               ),
               ListTile(
                 leading: const Icon(Icons.star_outline),
-                title: const Text('Rating'),
-                trailing: _sort == _MyTripsSort.rating
-                    ? Icon(_sortAscending ? Icons.arrow_upward : Icons.arrow_downward)
-                    : null,
-                onTap: () => Navigator.pop(ctx, _MyTripsSort.rating),
+                title: const Text('Group by rating'),
+                onTap: () => Navigator.pop(ctx, _MyTripsViewMode.groupRating),
               ),
             ],
           ),
@@ -187,14 +211,56 @@ class _MyTripsState extends ConsumerState<MyTrips> {
     );
     if (chosen != null && mounted) {
       setState(() {
-        if (_sort == chosen) {
-          _sortAscending = !_sortAscending;
+        if (_viewMode == chosen &&
+            chosen == _MyTripsViewMode.chronological) {
+          _chronologicalAscending = !_chronologicalAscending;
         } else {
-          _sort = chosen;
-          _sortAscending = chosen == _MyTripsSort.country;
+          _viewMode = chosen;
         }
       });
     }
+  }
+
+  List<Widget> _buildGroupedTripSlivers(
+    BuildContext context,
+    List<_TripGroup> groups,
+  ) {
+    const gridDelegate = SliverGridDelegateWithFixedCrossAxisCount(
+      crossAxisCount: 2,
+      crossAxisSpacing: 16,
+      mainAxisSpacing: 16,
+      childAspectRatio: 0.85,
+    );
+    final titleStyle = Theme.of(context).textTheme.titleMedium?.copyWith(
+          fontWeight: FontWeight.bold,
+          color: Theme.of(context).colorScheme.onSurfaceVariant,
+        );
+    final slivers = <Widget>[];
+    for (var i = 0; i < groups.length; i++) {
+      final g = groups[i];
+      slivers.add(
+        SliverToBoxAdapter(
+          child: Padding(
+            padding: EdgeInsets.fromLTRB(16, i == 0 ? 0 : 20, 16, 8),
+            child: Text(g.title, style: titleStyle),
+          ),
+        ),
+      );
+      slivers.add(
+        SliverPadding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          sliver: SliverGrid(
+            gridDelegate: gridDelegate,
+            delegate: SliverChildBuilderDelegate(
+              (ctx, j) => _TripCard(trip: g.trips[j]),
+              childCount: g.trips.length,
+            ),
+          ),
+        ),
+      );
+    }
+    slivers.add(const SliverToBoxAdapter(child: SizedBox(height: 16)));
+    return slivers;
   }
 
   Future<void> _showFilterSheet(BuildContext context) async {
@@ -212,33 +278,81 @@ class _MyTripsState extends ConsumerState<MyTrips> {
   }
 }
 
-List<Trip> _sortTrips(List<Trip> trips, _MyTripsSort sort, bool ascending) {
+List<Trip> _sortTripsChronological(List<Trip> trips, bool ascending) {
   final out = [...trips];
-  switch (sort) {
-    case _MyTripsSort.date:
-      out.sort((a, b) {
-        final cmp = a.endDate.compareTo(b.endDate);
-        return ascending ? cmp : -cmp;
-      });
-      break;
-    case _MyTripsSort.rating:
-      out.sort((a, b) {
-        final aa = a.averageDayRating ?? -1;
-        final ba = b.averageDayRating ?? -1;
-        final cmp = aa.compareTo(ba);
-        return ascending ? cmp : -cmp;
-      });
-      break;
-    case _MyTripsSort.country:
-      out.sort((a, b) {
-        final ac = a.countries.isEmpty ? '' : a.countries.first;
-        final bc = b.countries.isEmpty ? '' : b.countries.first;
-        final cmp = ac.compareTo(bc);
-        return ascending ? cmp : -cmp;
-      });
-      break;
-  }
+  out.sort((a, b) {
+    final cmp = a.endDate.compareTo(b.endDate);
+    return ascending ? cmp : -cmp;
+  });
   return out;
+}
+
+String _countryGroupTitle(String key) {
+  if (key.isEmpty) return 'No country';
+  if (key == _kMultiCountryGroupKey) return 'Multiple countries';
+  return countryNameEn(key);
+}
+
+int _countryGroupTier(String key) {
+  if (key.isEmpty) return 2;
+  if (key == _kMultiCountryGroupKey) return 1;
+  return 0;
+}
+
+List<_TripGroup> _groupTripsByCountry(List<Trip> trips) {
+  final map = <String, List<Trip>>{};
+  for (final t in trips) {
+    final String key;
+    if (t.countries.isEmpty) {
+      key = '';
+    } else if (t.countries.length > 1) {
+      key = _kMultiCountryGroupKey;
+    } else {
+      key = t.countries.first;
+    }
+    map.putIfAbsent(key, () => []).add(t);
+  }
+  for (final list in map.values) {
+    list.sort((a, b) => b.endDate.compareTo(a.endDate));
+  }
+  final keys = map.keys.toList()
+    ..sort((a, b) {
+      final ta = _countryGroupTier(a);
+      final tb = _countryGroupTier(b);
+      if (ta != tb) return ta.compareTo(tb);
+      return _countryGroupTitle(a).compareTo(_countryGroupTitle(b));
+    });
+  return [
+    for (final k in keys)
+      if (map[k]!.isNotEmpty)
+        _TripGroup(title: _countryGroupTitle(k), trips: map[k]!),
+  ];
+}
+
+int? _ratingBucket(Trip t) {
+  final v = t.averageDayRating;
+  if (v == null) return null;
+  return v.round().clamp(1, 5);
+}
+
+List<_TripGroup> _groupTripsByRating(List<Trip> trips) {
+  final buckets = <int?, List<Trip>>{};
+  for (final t in trips) {
+    final b = _ratingBucket(t);
+    buckets.putIfAbsent(b, () => []).add(t);
+  }
+  for (final list in buckets.values) {
+    list.sort((a, b) => b.endDate.compareTo(a.endDate));
+  }
+  const order = <int?>[5, 4, 3, 2, 1, null];
+  return [
+    for (final stars in order)
+      if (buckets[stars] != null && buckets[stars]!.isNotEmpty)
+        _TripGroup(
+          title: stars == null ? 'Unrated' : '$stars ★',
+          trips: buckets[stars]!,
+        ),
+  ];
 }
 
 bool _matchesSearch(Trip t, String q) {
