@@ -26,6 +26,7 @@ class Days extends Table {
   IntColumn get date => integer()();
   TextColumn get journalNote => text().nullable()();
   TextColumn get audioJournalMediaId => text().nullable()();
+  TextColumn get coverMediaId => text().nullable()();
   /// 1–5 stars after the calendar day ends (or user ends the day early).
   IntColumn get dayRating => integer().nullable()();
 

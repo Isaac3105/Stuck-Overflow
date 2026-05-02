@@ -736,6 +736,17 @@ class $DaysTable extends Days with TableInfo<$DaysTable, DayRow> {
         type: DriftSqlType.string,
         requiredDuringInsert: false,
       );
+  static const VerificationMeta _coverMediaIdMeta = const VerificationMeta(
+    'coverMediaId',
+  );
+  @override
+  late final GeneratedColumn<String> coverMediaId = GeneratedColumn<String>(
+    'cover_media_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _dayRatingMeta = const VerificationMeta(
     'dayRating',
   );
@@ -754,6 +765,7 @@ class $DaysTable extends Days with TableInfo<$DaysTable, DayRow> {
     date,
     journalNote,
     audioJournalMediaId,
+    coverMediaId,
     dayRating,
   ];
   @override
@@ -807,6 +819,15 @@ class $DaysTable extends Days with TableInfo<$DaysTable, DayRow> {
         ),
       );
     }
+    if (data.containsKey('cover_media_id')) {
+      context.handle(
+        _coverMediaIdMeta,
+        coverMediaId.isAcceptableOrUnknown(
+          data['cover_media_id']!,
+          _coverMediaIdMeta,
+        ),
+      );
+    }
     if (data.containsKey('day_rating')) {
       context.handle(
         _dayRatingMeta,
@@ -842,6 +863,10 @@ class $DaysTable extends Days with TableInfo<$DaysTable, DayRow> {
         DriftSqlType.string,
         data['${effectivePrefix}audio_journal_media_id'],
       ),
+      coverMediaId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}cover_media_id'],
+      ),
       dayRating: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
         data['${effectivePrefix}day_rating'],
@@ -861,6 +886,7 @@ class DayRow extends DataClass implements Insertable<DayRow> {
   final int date;
   final String? journalNote;
   final String? audioJournalMediaId;
+  final String? coverMediaId;
 
   /// 1–5 stars after the calendar day ends (or user ends the day early).
   final int? dayRating;
@@ -870,6 +896,7 @@ class DayRow extends DataClass implements Insertable<DayRow> {
     required this.date,
     this.journalNote,
     this.audioJournalMediaId,
+    this.coverMediaId,
     this.dayRating,
   });
   @override
@@ -883,6 +910,9 @@ class DayRow extends DataClass implements Insertable<DayRow> {
     }
     if (!nullToAbsent || audioJournalMediaId != null) {
       map['audio_journal_media_id'] = Variable<String>(audioJournalMediaId);
+    }
+    if (!nullToAbsent || coverMediaId != null) {
+      map['cover_media_id'] = Variable<String>(coverMediaId);
     }
     if (!nullToAbsent || dayRating != null) {
       map['day_rating'] = Variable<int>(dayRating);
@@ -901,6 +931,9 @@ class DayRow extends DataClass implements Insertable<DayRow> {
       audioJournalMediaId: audioJournalMediaId == null && nullToAbsent
           ? const Value.absent()
           : Value(audioJournalMediaId),
+      coverMediaId: coverMediaId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(coverMediaId),
       dayRating: dayRating == null && nullToAbsent
           ? const Value.absent()
           : Value(dayRating),
@@ -920,6 +953,7 @@ class DayRow extends DataClass implements Insertable<DayRow> {
       audioJournalMediaId: serializer.fromJson<String?>(
         json['audioJournalMediaId'],
       ),
+      coverMediaId: serializer.fromJson<String?>(json['coverMediaId']),
       dayRating: serializer.fromJson<int?>(json['dayRating']),
     );
   }
@@ -932,6 +966,7 @@ class DayRow extends DataClass implements Insertable<DayRow> {
       'date': serializer.toJson<int>(date),
       'journalNote': serializer.toJson<String?>(journalNote),
       'audioJournalMediaId': serializer.toJson<String?>(audioJournalMediaId),
+      'coverMediaId': serializer.toJson<String?>(coverMediaId),
       'dayRating': serializer.toJson<int?>(dayRating),
     };
   }
@@ -942,6 +977,7 @@ class DayRow extends DataClass implements Insertable<DayRow> {
     int? date,
     Value<String?> journalNote = const Value.absent(),
     Value<String?> audioJournalMediaId = const Value.absent(),
+    Value<String?> coverMediaId = const Value.absent(),
     Value<int?> dayRating = const Value.absent(),
   }) => DayRow(
     id: id ?? this.id,
@@ -951,6 +987,7 @@ class DayRow extends DataClass implements Insertable<DayRow> {
     audioJournalMediaId: audioJournalMediaId.present
         ? audioJournalMediaId.value
         : this.audioJournalMediaId,
+    coverMediaId: coverMediaId.present ? coverMediaId.value : this.coverMediaId,
     dayRating: dayRating.present ? dayRating.value : this.dayRating,
   );
   DayRow copyWithCompanion(DaysCompanion data) {
@@ -964,6 +1001,9 @@ class DayRow extends DataClass implements Insertable<DayRow> {
       audioJournalMediaId: data.audioJournalMediaId.present
           ? data.audioJournalMediaId.value
           : this.audioJournalMediaId,
+      coverMediaId: data.coverMediaId.present
+          ? data.coverMediaId.value
+          : this.coverMediaId,
       dayRating: data.dayRating.present ? data.dayRating.value : this.dayRating,
     );
   }
@@ -976,6 +1016,7 @@ class DayRow extends DataClass implements Insertable<DayRow> {
           ..write('date: $date, ')
           ..write('journalNote: $journalNote, ')
           ..write('audioJournalMediaId: $audioJournalMediaId, ')
+          ..write('coverMediaId: $coverMediaId, ')
           ..write('dayRating: $dayRating')
           ..write(')'))
         .toString();
@@ -988,6 +1029,7 @@ class DayRow extends DataClass implements Insertable<DayRow> {
     date,
     journalNote,
     audioJournalMediaId,
+    coverMediaId,
     dayRating,
   );
   @override
@@ -999,6 +1041,7 @@ class DayRow extends DataClass implements Insertable<DayRow> {
           other.date == this.date &&
           other.journalNote == this.journalNote &&
           other.audioJournalMediaId == this.audioJournalMediaId &&
+          other.coverMediaId == this.coverMediaId &&
           other.dayRating == this.dayRating);
 }
 
@@ -1008,6 +1051,7 @@ class DaysCompanion extends UpdateCompanion<DayRow> {
   final Value<int> date;
   final Value<String?> journalNote;
   final Value<String?> audioJournalMediaId;
+  final Value<String?> coverMediaId;
   final Value<int?> dayRating;
   final Value<int> rowid;
   const DaysCompanion({
@@ -1016,6 +1060,7 @@ class DaysCompanion extends UpdateCompanion<DayRow> {
     this.date = const Value.absent(),
     this.journalNote = const Value.absent(),
     this.audioJournalMediaId = const Value.absent(),
+    this.coverMediaId = const Value.absent(),
     this.dayRating = const Value.absent(),
     this.rowid = const Value.absent(),
   });
@@ -1025,6 +1070,7 @@ class DaysCompanion extends UpdateCompanion<DayRow> {
     required int date,
     this.journalNote = const Value.absent(),
     this.audioJournalMediaId = const Value.absent(),
+    this.coverMediaId = const Value.absent(),
     this.dayRating = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id),
@@ -1036,6 +1082,7 @@ class DaysCompanion extends UpdateCompanion<DayRow> {
     Expression<int>? date,
     Expression<String>? journalNote,
     Expression<String>? audioJournalMediaId,
+    Expression<String>? coverMediaId,
     Expression<int>? dayRating,
     Expression<int>? rowid,
   }) {
@@ -1046,6 +1093,7 @@ class DaysCompanion extends UpdateCompanion<DayRow> {
       if (journalNote != null) 'journal_note': journalNote,
       if (audioJournalMediaId != null)
         'audio_journal_media_id': audioJournalMediaId,
+      if (coverMediaId != null) 'cover_media_id': coverMediaId,
       if (dayRating != null) 'day_rating': dayRating,
       if (rowid != null) 'rowid': rowid,
     });
@@ -1057,6 +1105,7 @@ class DaysCompanion extends UpdateCompanion<DayRow> {
     Value<int>? date,
     Value<String?>? journalNote,
     Value<String?>? audioJournalMediaId,
+    Value<String?>? coverMediaId,
     Value<int?>? dayRating,
     Value<int>? rowid,
   }) {
@@ -1066,6 +1115,7 @@ class DaysCompanion extends UpdateCompanion<DayRow> {
       date: date ?? this.date,
       journalNote: journalNote ?? this.journalNote,
       audioJournalMediaId: audioJournalMediaId ?? this.audioJournalMediaId,
+      coverMediaId: coverMediaId ?? this.coverMediaId,
       dayRating: dayRating ?? this.dayRating,
       rowid: rowid ?? this.rowid,
     );
@@ -1091,6 +1141,9 @@ class DaysCompanion extends UpdateCompanion<DayRow> {
         audioJournalMediaId.value,
       );
     }
+    if (coverMediaId.present) {
+      map['cover_media_id'] = Variable<String>(coverMediaId.value);
+    }
     if (dayRating.present) {
       map['day_rating'] = Variable<int>(dayRating.value);
     }
@@ -1108,6 +1161,7 @@ class DaysCompanion extends UpdateCompanion<DayRow> {
           ..write('date: $date, ')
           ..write('journalNote: $journalNote, ')
           ..write('audioJournalMediaId: $audioJournalMediaId, ')
+          ..write('coverMediaId: $coverMediaId, ')
           ..write('dayRating: $dayRating, ')
           ..write('rowid: $rowid')
           ..write(')'))
@@ -3723,6 +3777,7 @@ typedef $$DaysTableCreateCompanionBuilder =
       required int date,
       Value<String?> journalNote,
       Value<String?> audioJournalMediaId,
+      Value<String?> coverMediaId,
       Value<int?> dayRating,
       Value<int> rowid,
     });
@@ -3733,6 +3788,7 @@ typedef $$DaysTableUpdateCompanionBuilder =
       Value<int> date,
       Value<String?> journalNote,
       Value<String?> audioJournalMediaId,
+      Value<String?> coverMediaId,
       Value<int?> dayRating,
       Value<int> rowid,
     });
@@ -3767,6 +3823,11 @@ class $$DaysTableFilterComposer extends Composer<_$AppDatabase, $DaysTable> {
 
   ColumnFilters<String> get audioJournalMediaId => $composableBuilder(
     column: $table.audioJournalMediaId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get coverMediaId => $composableBuilder(
+    column: $table.coverMediaId,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -3809,6 +3870,11 @@ class $$DaysTableOrderingComposer extends Composer<_$AppDatabase, $DaysTable> {
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get coverMediaId => $composableBuilder(
+    column: $table.coverMediaId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<int> get dayRating => $composableBuilder(
     column: $table.dayRating,
     builder: (column) => ColumnOrderings(column),
@@ -3840,6 +3906,11 @@ class $$DaysTableAnnotationComposer
 
   GeneratedColumn<String> get audioJournalMediaId => $composableBuilder(
     column: $table.audioJournalMediaId,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get coverMediaId => $composableBuilder(
+    column: $table.coverMediaId,
     builder: (column) => column,
   );
 
@@ -3880,6 +3951,7 @@ class $$DaysTableTableManager
                 Value<int> date = const Value.absent(),
                 Value<String?> journalNote = const Value.absent(),
                 Value<String?> audioJournalMediaId = const Value.absent(),
+                Value<String?> coverMediaId = const Value.absent(),
                 Value<int?> dayRating = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => DaysCompanion(
@@ -3888,6 +3960,7 @@ class $$DaysTableTableManager
                 date: date,
                 journalNote: journalNote,
                 audioJournalMediaId: audioJournalMediaId,
+                coverMediaId: coverMediaId,
                 dayRating: dayRating,
                 rowid: rowid,
               ),
@@ -3898,6 +3971,7 @@ class $$DaysTableTableManager
                 required int date,
                 Value<String?> journalNote = const Value.absent(),
                 Value<String?> audioJournalMediaId = const Value.absent(),
+                Value<String?> coverMediaId = const Value.absent(),
                 Value<int?> dayRating = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => DaysCompanion.insert(
@@ -3906,6 +3980,7 @@ class $$DaysTableTableManager
                 date: date,
                 journalNote: journalNote,
                 audioJournalMediaId: audioJournalMediaId,
+                coverMediaId: coverMediaId,
                 dayRating: dayRating,
                 rowid: rowid,
               ),

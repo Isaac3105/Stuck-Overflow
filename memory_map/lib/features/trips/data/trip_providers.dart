@@ -31,6 +31,10 @@ final tripDaysProvider =
   return ref.watch(tripRepositoryProvider).watchDays(tripId);
 });
 
+final dayProvider = StreamProvider.family<TripDay?, String>((ref, dayId) {
+  return ref.watch(tripRepositoryProvider).watchDaysByDayId(dayId);
+});
+
 final dayBlocksProvider =
     StreamProvider.family<List<ActivityBlock>, String>((ref, dayId) {
   return ref.watch(tripRepositoryProvider).watchBlocks(dayId);

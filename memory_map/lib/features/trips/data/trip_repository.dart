@@ -21,6 +21,7 @@ abstract class TripRepository {
   Future<void> setStatus(String tripId, TripStatus status);
 
   Stream<List<TripDay>> watchDays(String tripId);
+  Stream<TripDay?> watchDaysByDayId(String dayId);
   Future<List<TripDay>> getDays(String tripId);
   Future<TripDay?> getDayByDate(String tripId, DateTime date);
 
@@ -53,6 +54,7 @@ abstract class TripRepository {
   Future<MediaItem?> getMedia(String mediaId);
   Future<void> setTripCover(String tripId, String mediaId);
   Future<void> setDayAudio(String dayId, String mediaId);
+  Future<void> setDayCover(String dayId, String? mediaId);
   Future<void> setTripPlaylist(String tripId, String? playlistId);
 
   /// Persists 1–5 for a calendar day and refreshes [Trip.averageDayRating] when all days are rated.
