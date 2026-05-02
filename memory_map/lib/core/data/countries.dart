@@ -74,3 +74,4 @@ CountryEntry? countryByCode(String code) {
 }
 
 String countryNamePt(String code) => countryByCode(code)?.namePt ?? code;
+String countryNameEn(String code) => countryByCode(code)?.nameEn ?? code;
