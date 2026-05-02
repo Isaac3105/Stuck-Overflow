@@ -424,7 +424,7 @@ class _SpotifyPlaylistPickerSheet extends ConsumerWidget {
                                   try {
                                     await repo.selectPlaylistForTrip(
                                       tripId: tripId,
-                                      countryCode: countryCode,
+                                      countryName: countryCode,
                                       playlist: p,
                                     );
                                     messenger.showSnackBar(
@@ -472,7 +472,7 @@ final _selectedPlaylistProvider =
 final _spotifySuggestionsProvider = FutureProvider.autoDispose.family
     <List<SpotifyPlaylist>, ({String tripId, String countryCode})>((ref, args) {
   return ref.watch(spotifyRepositoryProvider).suggestPlaylists(
-        countryCode: args.countryCode,
+        countryName: args.countryCode,
         limit: 3,
       );
 });

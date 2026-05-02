@@ -7,12 +7,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
-import '../../../../core/data/countries.dart';
+import '../../../../core/data/geography.dart';
 import '../../data/trip_providers.dart';
 import '../../domain/media.dart';
 import '../../domain/trip.dart';
 import '../home/home_providers.dart';
 import '../home/story_player_page.dart';
+import '../widgets/trip_card.dart';
 
 enum _MyTripsSort { date, rating, country }
 
@@ -109,8 +110,18 @@ class _MyTripsState extends ConsumerState<MyTrips> {
                           childAspectRatio: 0.85,
                         ),
                         itemCount: visible.length,
-                        itemBuilder: (context, index) =>
-                            _TripCard(trip: visible[index]),
+                        itemBuilder: (context, index) {
+                          final t = visible[index];
+                          final coverPath = ref.watch(tripCoverImagePathProvider(t));
+                          return TripCard(
+                            trip: t,
+                            coverImagePath: coverPath,
+                            onTap: () => showDialog(
+                              context: context,
+                              builder: (_) => _TripPreviewDialog(trip: t),
+                            ),
+                          );
+                        },
                       ),
               ),
             ],
@@ -439,150 +450,6 @@ class _FilterSheetBodyState extends State<_FilterSheetBody> {
   }
 }
 
-class _TripCard extends ConsumerWidget {
-  const _TripCard({required this.trip});
-  final Trip trip;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final coverPath = ref.watch(tripCoverImagePathProvider(trip));
-    final range =
-        '${DateFormat('dd/MM/yy', 'en').format(trip.startDate)} - ${DateFormat('dd/MM/yy', 'en').format(trip.endDate)}';
-    final subtitle = [
-      if (trip.countries.isNotEmpty) countryNameEn(trip.countries.first),
-      if (trip.cities.isNotEmpty) trip.cities.first,
-    ].join(', ');
-
-    return Card(
-      clipBehavior: Clip.antiAlias,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      child: InkWell(
-        onTap: () => showDialog(
-          context: context,
-          builder: (_) => _TripPreviewDialog(trip: trip),
-        ),
-        child: Stack(
-          fit: StackFit.expand,
-          children: [
-            if (coverPath != null)
-              Image.file(File(coverPath), fit: BoxFit.cover)
-            else
-              Container(
-                color: Theme.of(context).colorScheme.surfaceContainerHigh,
-                child: const Center(child: Icon(Icons.image_outlined, size: 36)),
-              ),
-            Container(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [
-                    Colors.black.withOpacity(0.35),
-                    Colors.transparent,
-                    Colors.black.withOpacity(0.85),
-                  ],
-                  stops: const [0.0, 0.55, 1.0],
-                ),
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.all(12.0),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    trip.name,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 14,
-                      shadows: [
-                        Shadow(
-                          color: Colors.black45,
-                          blurRadius: 4,
-                          offset: Offset(2, 2),
-                        ),
-                      ],
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        subtitle,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 13,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        range,
-                        style: const TextStyle(
-                          color: Colors.white70,
-                          fontSize: 10,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      const SizedBox(height: 6),
-                      Row(
-                        children: [
-                          Icon(
-                            Icons.star_rounded,
-                            color: trip.averageDayRating != null
-                                ? Colors.amber
-                                : Colors.white38,
-                            size: 16,
-                          ),
-                          const SizedBox(width: 4),
-                          Expanded(
-                            child: Text(
-                              trip.averageDayRating != null
-                                  ? '${NumberFormat('#0.0', 'en').format(trip.averageDayRating)} / 5'
-                                  : 'No rating',
-                              style: TextStyle(
-                                color: trip.averageDayRating != null
-                                    ? Colors.white
-                                    : Colors.white70,
-                                fontSize: 12,
-                                fontWeight: trip.averageDayRating != null
-                                    ? FontWeight.w700
-                                    : FontWeight.w400,
-                                shadows: trip.averageDayRating != null
-                                    ? const [
-                                        Shadow(
-                                          color: Colors.black45,
-                                          blurRadius: 3,
-                                          offset: Offset(1, 1),
-                                        ),
-                                      ]
-                                    : null,
-                              ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
 class _TripPreviewDialog extends ConsumerWidget {
   const _TripPreviewDialog({required this.trip});
   final Trip trip;
@@ -593,7 +460,7 @@ class _TripPreviewDialog extends ConsumerWidget {
     final range =
         '${DateFormat('d MMM yyyy', 'en').format(trip.startDate)} → ${DateFormat('d MMM yyyy', 'en').format(trip.endDate)}';
     final place = [
-      if (trip.countries.isNotEmpty) countryNameEn(trip.countries.first),
+      if (trip.countries.isNotEmpty) resolveGeography(trip.countries.first)?.name ?? trip.countries.first,
       if (trip.cities.isNotEmpty) trip.cities.first,
     ].join(', ');
 
@@ -647,6 +514,7 @@ class _TripPreviewDialog extends ConsumerWidget {
                   ),
                 ),
               ),
+
               Padding(
                 padding: const EdgeInsets.all(24.0),
                 child: Column(
