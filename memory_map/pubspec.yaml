@@ -12,6 +12,7 @@ dependencies:
   flutter_localizations:
     sdk: flutter
   cupertino_icons: ^1.0.8
+  google_fonts: ^6.2.1
 
   # State management
   flutter_riverpod: ^2.6.1

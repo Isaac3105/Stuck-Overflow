@@ -16,6 +16,7 @@ class MemoryMapApp extends ConsumerWidget {
       onGenerateTitle: (ctx) => AppLocalizations.of(ctx)!.appTitle,
       theme: AppTheme.light(),
       darkTheme: AppTheme.dark(),
+      themeMode: ThemeMode.system,
       routerConfig: appRouter,
       localizationsDelegates: const [
         AppLocalizations.delegate,
