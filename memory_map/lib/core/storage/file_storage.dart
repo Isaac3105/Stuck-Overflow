@@ -27,6 +27,13 @@ class FileStorage {
     return source.copy(dest.path);
   }
 
+  Future<File> saveVideo(String tripId, File source) async {
+    final dir = await _tripDir(tripId, 'videos');
+    final ext = p.extension(source.path).isEmpty ? '.mp4' : p.extension(source.path);
+    final dest = File(p.join(dir.path, '${_uuid.v4()}$ext'));
+    return source.copy(dest.path);
+  }
+
   Future<String> reserveAudioPath(String tripId, {String ext = '.m4a'}) async {
     final dir = await _tripDir(tripId, 'audio');
     return p.join(dir.path, '${_uuid.v4()}$ext');

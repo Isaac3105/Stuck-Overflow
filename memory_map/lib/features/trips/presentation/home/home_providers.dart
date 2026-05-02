@@ -13,6 +13,7 @@ import '../../domain/trip.dart';
 class FeaturedTripData {
   const FeaturedTripData({
     required this.trip,
+    required this.visuals,
     required this.photos,
     required this.audios,
     this.mainImageIds = const {},
@@ -21,6 +22,11 @@ class FeaturedTripData {
     this.mapZoom,
   });
   final Trip trip;
+
+  /// Photos + videos (used throughout the app, except stories).
+  final List<MediaItem> visuals;
+
+  /// Photos only (used by stories).
   final List<MediaItem> photos;
   final List<MediaItem> audios;
   final Set<String> mainImageIds;
@@ -33,22 +39,23 @@ class FeaturedTripData {
   bool get hasMap =>
       mapLatitude != null && mapLongitude != null && mapZoom != null;
 
-  MediaItem? get coverPhoto {
-    if (photos.isEmpty) return null;
+  MediaItem? get coverVisual {
+    if (visuals.isEmpty) return null;
     if (trip.coverMediaId != null) {
-      for (final p in photos) {
-        if (p.id == trip.coverMediaId) return p;
+      for (final m in visuals) {
+        if (m.id == trip.coverMediaId) return m;
       }
     }
     if (mainImageIds.isNotEmpty) {
-      for (final p in photos) {
-        if (mainImageIds.contains(p.id)) return p;
+      for (final m in visuals) {
+        if (mainImageIds.contains(m.id)) return m;
       }
     }
-    return photos.first;
+    return visuals.first;
   }
 
-  String? get coverImagePath => coverPhoto?.filePath;
+  MediaType? get coverType => coverVisual?.type;
+  String? get coverFilePath => coverVisual?.filePath;
 
   String get subtitle {
     final start = trip.startDate;
@@ -63,13 +70,13 @@ class FeaturedTripData {
 Future<({double lat, double lng, double zoom})?> _resolveMapFocus({
   required TripRepository repo,
   required Trip trip,
-  required List<MediaItem> photos,
+  required List<MediaItem> visuals,
   required Set<String> mainImageIds,
 }) async {
   MediaItem? cover;
-  if (photos.isNotEmpty) {
+  if (visuals.isNotEmpty) {
     if (trip.coverMediaId != null) {
-      for (final p in photos) {
+      for (final p in visuals) {
         if (p.id == trip.coverMediaId) {
           cover = p;
           break;
@@ -78,11 +85,11 @@ Future<({double lat, double lng, double zoom})?> _resolveMapFocus({
     }
     cover ??= () {
       if (mainImageIds.isNotEmpty) {
-        for (final p in photos) {
+        for (final p in visuals) {
           if (mainImageIds.contains(p.id)) return p;
         }
       }
-      return photos.first;
+      return visuals.first;
     }();
   }
 
@@ -109,6 +116,7 @@ Future<({double lat, double lng, double zoom})?> _resolveMapFocus({
 Future<FeaturedTripData> _buildFeaturedData({
   required TripRepository repo,
   required Trip trip,
+  required List<MediaItem> visuals,
   required List<MediaItem> photos,
   required List<MediaItem> audios,
   required Set<String> mainImageIds,
@@ -116,11 +124,12 @@ Future<FeaturedTripData> _buildFeaturedData({
   final focus = await _resolveMapFocus(
     repo: repo,
     trip: trip,
-    photos: photos,
+    visuals: visuals,
     mainImageIds: mainImageIds,
   );
   return FeaturedTripData(
     trip: trip,
+    visuals: visuals,
     photos: photos,
     audios: audios,
     mainImageIds: mainImageIds,
@@ -166,6 +175,10 @@ final allFeaturedTripsProvider =
         days.map((d) => d.coverMediaId).whereType<String>().toSet();
 
     final media = await repo.watchMediaForTrip(t.id).first;
+    final visuals = media
+        .where((m) => m.type == MediaType.photo || m.type == MediaType.video)
+        .toList()
+      ..sort((a, b) => a.takenAt.compareTo(b.takenAt));
     final photos = media.where((m) => m.type == MediaType.photo).toList()
       ..sort((a, b) => a.takenAt.compareTo(b.takenAt));
 
@@ -177,6 +190,7 @@ final allFeaturedTripsProvider =
     results.add(await _buildFeaturedData(
       repo: repo,
       trip: t,
+      visuals: visuals,
       photos: photos,
       audios: audios,
       mainImageIds: mainImageIds,
@@ -202,6 +216,10 @@ final tripFeaturedDataProvider =
       .toSet();
 
   final media = await ref.watch(tripMediaProvider(tripId).future);
+  final visuals = media
+      .where((m) => m.type == MediaType.photo || m.type == MediaType.video)
+      .toList()
+    ..sort((a, b) => a.takenAt.compareTo(b.takenAt));
   final photos = media.where((m) => m.type == MediaType.photo).toList()
     ..sort((a, b) => a.takenAt.compareTo(b.takenAt));
 
@@ -212,6 +230,7 @@ final tripFeaturedDataProvider =
   return _buildFeaturedData(
     repo: repo,
     trip: trip,
+    visuals: visuals,
     photos: photos,
     audios: audios,
     mainImageIds: mainImageIds,
