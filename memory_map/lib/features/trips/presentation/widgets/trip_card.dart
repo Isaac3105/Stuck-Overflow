@@ -7,8 +7,9 @@ import 'package:intl/intl.dart';
 import '../../../../core/data/geography.dart';
 import '../../domain/trip.dart';
 
-/// [cover] — photo hero + gradient (trips with optional cover).
-/// [plan] — text-only card for planning trips (no image area).
+/// [cover] — photo hero when [coverImagePath] is set; otherwise same text card
+/// as archive-style (flags, dates, name, rating).
+/// [plan] — text-only for planning (no rating, no image).
 enum TripCardLayout { cover, plan }
 
 class TripCard extends StatelessWidget {
@@ -27,12 +28,16 @@ class TripCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return layout == TripCardLayout.plan
-        ? _buildPlanLayout(context)
-        : _buildCoverLayout(context);
+    if (layout == TripCardLayout.plan) {
+      return _buildTextLayout(context, showRating: false);
+    }
+    if (coverImagePath != null) {
+      return _buildCoverLayout(context);
+    }
+    return _buildTextLayout(context, showRating: true);
   }
 
-  Widget _buildPlanLayout(BuildContext context) {
+  Widget _buildTextLayout(BuildContext context, {required bool showRating}) {
     final scheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
     final range =
@@ -105,17 +110,60 @@ class TripCard extends StatelessWidget {
                 ),
               ),
               const Spacer(),
-              Text(
-                trip.name,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w700,
-                  fontSize: 17,
-                  height: 1.2,
-                  color: scheme.onSurface,
+              if (showRating)
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Expanded(
+                      child: Text(
+                        trip.name,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w700,
+                          fontSize: 17,
+                          height: 1.2,
+                          color: scheme.onSurface,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          trip.averageDayRating != null
+                              ? NumberFormat('#0.0', 'en')
+                                  .format(trip.averageDayRating)
+                              : '--',
+                          style: textTheme.labelLarge?.copyWith(
+                            fontWeight: FontWeight.w700,
+                            fontSize: 13,
+                            color: scheme.onSurface,
+                          ),
+                        ),
+                        const SizedBox(width: 2),
+                        Icon(
+                          Icons.star_rounded,
+                          color: scheme.tertiary,
+                          size: 18,
+                        ),
+                      ],
+                    ),
+                  ],
+                )
+              else
+                Text(
+                  trip.name,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w700,
+                    fontSize: 17,
+                    height: 1.2,
+                    color: scheme.onSurface,
+                  ),
                 ),
-              ),
             ],
           ),
         ),
