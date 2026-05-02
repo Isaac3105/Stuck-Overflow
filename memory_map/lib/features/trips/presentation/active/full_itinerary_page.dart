@@ -8,7 +8,6 @@ import '../plan/activity_block_form.dart';
 import '../widgets/suggestions_sidebar.dart';
 import '../widgets/activity_block_tile.dart';
 import '../widgets/empty_state.dart';
-import '../widgets/weather_card.dart';
 
 class FullItineraryPage extends ConsumerWidget {
   const FullItineraryPage({

@@ -132,3 +132,47 @@ final tripCoverImagePathProvider = Provider.autoDispose.family<String?, Trip>((r
     orElse: () => null,
   );
 });
+
+/// Resolves the cover visual (photo or video) for a given trip.
+final tripCoverMediaProvider =
+    Provider.autoDispose.family<MediaItem?, Trip>((ref, trip) {
+  final mediaAsync = ref.watch(tripMediaProvider(trip.id));
+  final daysAsync = ref.watch(tripDaysProvider(trip.id));
+
+  return mediaAsync.maybeWhen(
+    data: (list) {
+      MediaItem? byId(String id) {
+        for (final m in list) {
+          if (m.id == id) return m;
+        }
+        return null;
+      }
+
+      // 1. Specific trip cover
+      if (trip.coverMediaId != null) {
+        final m = byId(trip.coverMediaId!);
+        if (m != null) return m;
+      }
+
+      // 2. Try to find the first "main image" of any day
+      final mainIds = daysAsync.maybeWhen(
+        data: (days) =>
+            days.map((d) => d.coverMediaId).whereType<String>().toSet(),
+        orElse: () => <String>{},
+      );
+      if (mainIds.isNotEmpty) {
+        for (final id in mainIds) {
+          final m = byId(id);
+          if (m != null) return m;
+        }
+      }
+
+      // 3. Fallback to first photo/video
+      for (final m in list) {
+        if (m.type == MediaType.photo || m.type == MediaType.video) return m;
+      }
+      return null;
+    },
+    orElse: () => null,
+  );
+});

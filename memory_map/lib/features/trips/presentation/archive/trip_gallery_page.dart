@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../data/trip_providers.dart';
@@ -21,10 +20,12 @@ class TripGalleryPage extends ConsumerWidget {
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (e, _) => Center(child: Text('Error: $e')),
         data: (media) {
-          final photos = media.where((m) => m.type == MediaType.photo).toList();
-          if (photos.isEmpty) {
+          final items = media
+              .where((m) => m.type == MediaType.photo || m.type == MediaType.video)
+              .toList();
+          if (items.isEmpty) {
             return const Center(
-              child: Text('No photos captured during this trip.'),
+              child: Text('No photos or videos captured during this trip.'),
             );
           }
           return GridView.builder(
@@ -34,17 +35,19 @@ class TripGalleryPage extends ConsumerWidget {
               crossAxisSpacing: 8,
               mainAxisSpacing: 8,
             ),
-            itemCount: photos.length,
+            itemCount: items.length,
             itemBuilder: (context, i) {
-              final photo = photos[i];
-              return PhotoThumbnail(
-                filePath: photo.filePath,
+              final m = items[i];
+              return MediaThumbnail(
+                type: m.type,
+                filePath: m.filePath,
                 onTap: () => Navigator.of(context).push(
                   MaterialPageRoute(
-                    builder: (_) => PhotoViewerPage(
-                      filePath: photo.filePath,
-                      dayId: photo.dayId,
-                      mediaId: photo.id,
+                    builder: (_) => MediaViewerPage(
+                      type: m.type,
+                      filePath: m.filePath,
+                      dayId: m.dayId,
+                      mediaId: m.id,
                     ),
                   ),
                 ),
