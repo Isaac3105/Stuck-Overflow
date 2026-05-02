@@ -25,6 +25,7 @@ class LocalTripRepository implements TripRepository {
         status: TripStatus.values.byName(r.status),
         coverMediaId: r.coverMediaId,
         selectedPlaylistId: r.selectedPlaylistId,
+        averageDayRating: r.averageDayRating,
         createdAt: DateTime.fromMillisecondsSinceEpoch(r.createdAt),
       );
 
@@ -34,6 +35,8 @@ class LocalTripRepository implements TripRepository {
         date: DateTime.fromMillisecondsSinceEpoch(r.date),
         journalNote: r.journalNote,
         audioJournalMediaId: r.audioJournalMediaId,
+        coverMediaId: r.coverMediaId,
+        dayRating: r.dayRating,
       );
 
   ActivityBlock _toBlock(ActivityBlockRow r) => ActivityBlock(
@@ -137,6 +140,7 @@ class LocalTripRepository implements TripRepository {
         status: Value(trip.status.name),
         coverMediaId: Value(trip.coverMediaId),
         selectedPlaylistId: Value(trip.selectedPlaylistId),
+        averageDayRating: Value(trip.averageDayRating),
       ),
     );
   }
@@ -172,6 +176,12 @@ class LocalTripRepository implements TripRepository {
       ..where((d) => d.tripId.equals(tripId))
       ..orderBy([(d) => OrderingTerm(expression: d.date)]);
     return q.watch().map((rows) => rows.map(_toDay).toList());
+  }
+
+  @override
+  Stream<TripDay?> watchDaysByDayId(String dayId) {
+    final q = db.select(db.days)..where((d) => d.id.equals(dayId));
+    return q.watchSingleOrNull().map((r) => r == null ? null : _toDay(r));
   }
 
   @override
@@ -330,9 +340,53 @@ class LocalTripRepository implements TripRepository {
   }
 
   @override
+  Future<void> setDayCover(String dayId, String? mediaId) async {
+    await (db.update(db.days)..where((d) => d.id.equals(dayId)))
+        .write(DaysCompanion(coverMediaId: Value(mediaId)));
+  }
+
+  @override
   Future<void> setTripPlaylist(String tripId, String? playlistId) async {
     await (db.update(db.trips)..where((t) => t.id.equals(tripId))).write(
       TripsCompanion(selectedPlaylistId: Value(playlistId)),
+    );
+  }
+
+  @override
+  Future<void> setDayRating({required String dayId, required int stars}) async {
+    if (stars < 1 || stars > 5) {
+      throw ArgumentError.value(stars, 'stars', 'must be between 1 and 5');
+    }
+    final row = await (db.select(db.days)..where((d) => d.id.equals(dayId)))
+        .getSingleOrNull();
+    if (row == null) return;
+    await (db.update(db.days)..where((d) => d.id.equals(dayId)))
+        .write(DaysCompanion(dayRating: Value(stars)));
+    await _recomputeTripAverageRating(row.tripId);
+  }
+
+  @override
+  Future<void> clearDayRating(String dayId) async {
+    final row = await (db.select(db.days)..where((d) => d.id.equals(dayId)))
+        .getSingleOrNull();
+    if (row == null) return;
+    await (db.update(db.days)..where((d) => d.id.equals(dayId))).write(
+      const DaysCompanion(dayRating: Value(null)),
+    );
+    await _recomputeTripAverageRating(row.tripId);
+  }
+
+  Future<void> _recomputeTripAverageRating(String tripId) async {
+    final rows = await (db.select(db.days)..where((d) => d.tripId.equals(tripId)))
+        .get();
+    if (rows.isEmpty) return;
+    final hasAnyRating = rows.any((r) => r.dayRating != null);
+    final double? avg = hasAnyRating
+        ? rows.map((r) => (r.dayRating ?? 0).toDouble()).fold<double>(0, (a, b) => a + b) /
+            rows.length
+        : null;
+    await (db.update(db.trips)..where((t) => t.id.equals(tripId))).write(
+      TripsCompanion(averageDayRating: Value(avg)),
     );
   }
 }

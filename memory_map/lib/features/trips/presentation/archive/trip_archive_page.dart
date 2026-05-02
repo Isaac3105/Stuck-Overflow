@@ -25,12 +25,12 @@ class TripArchivePage extends ConsumerWidget {
     return Scaffold(
       body: tripAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(child: Text('Erro: $e')),
+        error: (e, _) => Center(child: Text('Error: $e')),
         data: (trip) {
           if (trip == null) return const SizedBox.shrink();
           return daysAsync.when(
             loading: () => const Center(child: CircularProgressIndicator()),
-            error: (e, _) => Center(child: Text('Erro: $e')),
+            error: (e, _) => Center(child: Text('Error: $e')),
             data: (days) {
               return CustomScrollView(
                 slivers: [
@@ -49,8 +49,8 @@ class TripArchivePage extends ConsumerWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            '${DateFormat('d MMM yyyy', 'pt_PT').format(trip.startDate)} → '
-                            '${DateFormat('d MMM yyyy', 'pt_PT').format(trip.endDate)}',
+                            '${DateFormat('d MMM yyyy', 'en').format(trip.startDate)} → '
+                            '${DateFormat('d MMM yyyy', 'en').format(trip.endDate)}',
                             style: Theme.of(context).textTheme.bodyMedium,
                           ),
                           const SizedBox(height: 12),
@@ -128,7 +128,7 @@ class _DaySection extends ConsumerWidget {
     final blocksAsync = ref.watch(dayBlocksProvider(day.id));
     final mediaAsync = ref.watch(dayMediaProvider(day.id));
     final dateLabel =
-        DateFormat("EEEE, d 'de' MMMM", 'pt_PT').format(day.date);
+        DateFormat('EEEE, MMMM d', 'en').format(day.date);
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
       child: Column(
@@ -151,6 +151,8 @@ class _DaySection extends ConsumerWidget {
               ),
             ],
           ),
+          const SizedBox(height: 6),
+          _DayRatingRow(rating: day.dayRating),
           const SizedBox(height: 8),
           blocksAsync.maybeWhen(
             data: (blocks) {
@@ -209,7 +211,7 @@ class _DaySection extends ConsumerWidget {
                             child: AudioPlayerTile(
                               filePath: a.filePath,
                               label:
-                                  'Áudio às ${DateFormat('HH:mm').format(a.takenAt)}',
+                                  'Audio at ${DateFormat('HH:mm').format(a.takenAt)}',
                             ),
                           )),
                     ],
@@ -222,6 +224,44 @@ class _DaySection extends ConsumerWidget {
           const Divider(height: 32),
         ],
       ),
+    );
+  }
+}
+
+class _DayRatingRow extends StatelessWidget {
+  const _DayRatingRow({required this.rating});
+  final int? rating;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final stars = rating;
+    if (stars == null) {
+      return Text(
+        'No rating',
+        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              color: scheme.onSurfaceVariant,
+            ),
+      );
+    }
+    return Row(
+      children: [
+        ...List.generate(5, (i) {
+          final filled = i < stars;
+          return Icon(
+            filled ? Icons.star_rounded : Icons.star_outline_rounded,
+            size: 18,
+            color: filled ? Colors.amber : scheme.onSurfaceVariant,
+          );
+        }),
+        const SizedBox(width: 8),
+        Text(
+          '$stars / 5',
+          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                fontWeight: FontWeight.w600,
+              ),
+        ),
+      ],
     );
   }
 }

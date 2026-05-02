@@ -5,6 +5,7 @@ import '../domain/activity_block.dart';
 import '../domain/day.dart';
 import '../domain/media.dart';
 import '../domain/trip.dart';
+import '../domain/trip_itinerary_unlock.dart';
 import 'local_trip_repository.dart';
 import 'trip_repository.dart';
 
@@ -28,6 +29,10 @@ final tripProvider = StreamProvider.family<Trip?, String>((ref, tripId) {
 final tripDaysProvider =
     StreamProvider.family<List<TripDay>, String>((ref, tripId) {
   return ref.watch(tripRepositoryProvider).watchDays(tripId);
+});
+
+final dayProvider = StreamProvider.family<TripDay?, String>((ref, dayId) {
+  return ref.watch(tripRepositoryProvider).watchDaysByDayId(dayId);
 });
 
 final dayBlocksProvider =
@@ -64,4 +69,30 @@ final currentTripProvider = Provider<AsyncValue<Trip?>>((ref) {
     }
     return null;
   });
+});
+
+/// Ticks so itinerary / backlog rules refresh after midnight without a DB change.
+final dayCalendarTickProvider = StreamProvider<DateTime>((ref) async* {
+  yield DateTime.now();
+  await for (final _ in Stream.periodic(const Duration(minutes: 1))) {
+    yield DateTime.now();
+  }
+});
+
+/// Calendar day strictly before today that still needs a 1–5 rating.
+final pendingPastTripDayRatingProvider =
+    Provider.autoDispose.family<AsyncValue<TripDay?>, String>((ref, tripId) {
+  ref.watch(dayCalendarTickProvider);
+  return ref.watch(tripDaysProvider(tripId)).whenData(
+        (days) => pendingPastDayNeedingRating(days, DateTime.now()),
+      );
+});
+
+/// Unlocked itinerary day (respects early end: next day only on next calendar day).
+final activeTripItineraryDayProvider =
+    Provider.autoDispose.family<AsyncValue<TripDay?>, String>((ref, tripId) {
+  ref.watch(dayCalendarTickProvider);
+  return ref.watch(tripDaysProvider(tripId)).whenData(
+        (days) => unlockedItineraryDay(days, DateTime.now()),
+      );
 });

@@ -11,12 +11,34 @@ class FeaturedTripData {
     required this.trip,
     required this.photos,
     required this.audios,
+    this.mainImageIds = const {},
   });
   final Trip trip;
   final List<MediaItem> photos;
   final List<MediaItem> audios;
+  final Set<String> mainImageIds;
 
-  String? get coverImagePath => photos.isEmpty ? null : photos.first.filePath;
+  String? get coverImagePath {
+    if (photos.isEmpty) return null;
+    
+    // 1. Trip-wide cover
+    if (trip.coverMediaId != null) {
+      final found = photos.where((p) => p.id == trip.coverMediaId).firstOrNull;
+      if (found != null) return found.filePath;
+    }
+
+    // 2. Day cover
+    if (mainImageIds.isNotEmpty) {
+      final found = photos.where((p) => mainImageIds.contains(p.id)).firstOrNull;
+      if (found != null) return found.filePath;
+    }
+
+    // 3. We don't easily have access to days here, 
+    // but the photos list is already sorted chronologically.
+    // So photos.first is the first photo of the trip.
+    
+    return photos.first.filePath;
+  }
 
   String get subtitle {
     final start = trip.startDate;
@@ -51,13 +73,17 @@ final featuredCompletedTripProvider =
   final rng = Random(seed);
   for (var attempts = 0; attempts < completed.length; attempts++) {
     final t = completed[rng.nextInt(completed.length)];
+    final days = await repo.getDays(t.id);
+    final mainImageIds = days.map((d) => d.coverMediaId).whereType<String>().toSet();
+
     final media = await repo.watchMediaForTrip(t.id).first;
     final photos = media.where((m) => m.type == MediaType.photo).toList()
       ..sort((a, b) => a.takenAt.compareTo(b.takenAt));
+
     if (photos.isEmpty) continue;
     final audios = media.where((m) => m.type == MediaType.audio).toList()
       ..sort((a, b) => a.takenAt.compareTo(b.takenAt));
-    return FeaturedTripData(trip: t, photos: photos, audios: audios);
+    return FeaturedTripData(trip: t, photos: photos, audios: audios, mainImageIds: mainImageIds);
   }
   // Fallback: any completed trip even without photos.
   final t = completed.first;
@@ -68,3 +94,24 @@ void rollNewFeatured(WidgetRef ref) {
   ref.read(_rollSeedProvider.notifier).state =
       DateTime.now().millisecondsSinceEpoch;
 }
+
+final tripFeaturedDataProvider =
+    FutureProvider.family<FeaturedTripData?, String>((ref, tripId) async {
+  final trip = await ref.watch(tripProvider(tripId).future);
+  if (trip == null) return null;
+
+  final days = await ref.watch(tripDaysProvider(tripId).future);
+  final mainImageIds = days
+      .map((d) => d.coverMediaId)
+      .whereType<String>()
+      .toSet();
+
+  final media = await ref.watch(tripMediaProvider(tripId).future);
+  final photos = media.where((m) => m.type == MediaType.photo).toList()
+    ..sort((a, b) => a.takenAt.compareTo(b.takenAt));
+
+  final audios = media.where((m) => m.type == MediaType.audio).toList()
+    ..sort((a, b) => a.takenAt.compareTo(b.takenAt));
+
+  return FeaturedTripData(trip: trip, photos: photos, audios: audios, mainImageIds: mainImageIds);
+});

@@ -56,8 +56,8 @@ class _PreviewPlayerState extends State<PreviewPlayer> {
         child: Row(
           children: [
             IconButton.filled(
-              onPressed: !_ready
-                  ? null
+                  onPressed: !_ready
+                      ? null
                   : () => _player.playing ? _player.pause() : _player.play(),
               icon: Icon(_player.playing ? Icons.pause : Icons.play_arrow),
             ),
@@ -71,7 +71,7 @@ class _PreviewPlayerState extends State<PreviewPlayer> {
                   const SizedBox(height: 2),
                   Text(
                     widget.previewUrls.isEmpty
-                        ? 'Sem previews disponíveis'
+                        ? 'No previews available'
                         : 'Preview ${_idx + 1}/${widget.previewUrls.length}',
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
                           color: scheme.onSurfaceVariant,

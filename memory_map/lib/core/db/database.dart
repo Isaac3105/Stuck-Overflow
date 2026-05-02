@@ -26,7 +26,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.e);
 
   @override
-  int get schemaVersion => 2;
+  int get schemaVersion => 4;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -36,6 +36,23 @@ class AppDatabase extends _$AppDatabase {
         onUpgrade: (m, from, to) async {
           if (from < 2) {
             await m.addColumn(trips, trips.selectedPlaylistId);
+          }
+          if (from < 4) {
+            try {
+              await m.addColumn(days, days.coverMediaId);
+            } catch (e) {
+              debugPrint('Migration warning coverMediaId: $e');
+            }
+            try {
+              await m.addColumn(days, days.dayRating);
+            } catch (e) {
+              debugPrint('Migration warning dayRating: $e');
+            }
+            try {
+              await m.addColumn(trips, trips.averageDayRating);
+            } catch (e) {
+              debugPrint('Migration warning averageDayRating: $e');
+            }
           }
         },
       );

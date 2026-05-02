@@ -1,5 +1,5 @@
 /// Minimal ISO 3166-1 alpha-2 country list for the MVP picker.
-/// We keep both Portuguese and English names so the user can search comfortably.
+/// English names are shown in the UI; Portuguese aliases remain for search.
 class CountryEntry {
   const CountryEntry(this.code, this.namePt, this.nameEn);
   final String code;
@@ -74,3 +74,4 @@ CountryEntry? countryByCode(String code) {
 }
 
 String countryNamePt(String code) => countryByCode(code)?.namePt ?? code;
+String countryNameEn(String code) => countryByCode(code)?.nameEn ?? code;

@@ -11,7 +11,7 @@ class AudioRecorderButton extends ConsumerStatefulWidget {
     required this.tripId,
     this.dayId,
     this.activityBlockId,
-    this.label = 'Áudio do dia',
+    this.label = 'Record audio',
     this.onRecorded,
   });
 
@@ -48,7 +48,7 @@ class _AudioRecorderButtonState extends ConsumerState<AudioRecorderButton> {
         final ok = await controller.start(widget.tripId);
         if (!ok) {
           messenger.showSnackBar(
-            const SnackBar(content: Text('Sem permissão para microfone.')),
+            const SnackBar(content: Text('No microphone permission.')),
           );
           return;
         }
@@ -76,7 +76,7 @@ class _AudioRecorderButtonState extends ConsumerState<AudioRecorderButton> {
         if (media != null) {
           widget.onRecorded?.call(media.id);
           messenger.showSnackBar(
-            const SnackBar(content: Text('Áudio guardado.')),
+            const SnackBar(content: Text('Audio saved.')),
           );
         }
       }
@@ -102,7 +102,7 @@ class _AudioRecorderButtonState extends ConsumerState<AudioRecorderButton> {
             _recording ? scheme.onError : scheme.onPrimary,
       ),
       icon: Icon(_recording ? Icons.stop : Icons.mic),
-      label: Text(_recording ? 'Gravar… ${_fmt(_elapsed)}' : widget.label),
+      label: Text(_recording ? 'Recording… ${_fmt(_elapsed)}' : widget.label),
     );
   }
 }
