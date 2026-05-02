@@ -4,7 +4,7 @@ import 'package:flag/flag.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
-import '../../../../core/data/countries.dart';
+import '../../../../core/data/geography.dart';
 import '../../domain/trip.dart';
 
 class TripCard extends StatelessWidget {
@@ -26,7 +26,8 @@ class TripCard extends StatelessWidget {
     
     final locationParts = <String>[];
     if (trip.countries.isNotEmpty) {
-      locationParts.add(countryNameEn(trip.countries.first));
+      final entry = resolveGeography(trip.countries.first);
+      locationParts.add(entry?.name ?? trip.countries.first);
     }
     if (trip.cities.isNotEmpty) {
       locationParts.add(trip.cities.first);
@@ -74,14 +75,18 @@ class TripCard extends StatelessWidget {
                     children: trip.countries
                         .take(4)
                         .map(
-                          (c) => ClipRRect(
-                            borderRadius: BorderRadius.circular(3),
-                            child: SizedBox(
-                              width: 24,
-                              height: 16,
-                              child: Flag.fromString(c, fit: BoxFit.cover),
-                            ),
-                          ),
+                          (name) {
+                            final code = resolveGeography(name)?.code;
+                            if (code == null) return const SizedBox.shrink();
+                            return ClipRRect(
+                              borderRadius: BorderRadius.circular(3),
+                              child: SizedBox(
+                                width: 24,
+                                height: 16,
+                                child: Flag.fromString(code, fit: BoxFit.cover),
+                              ),
+                            );
+                          },
                         )
                         .toList(),
                   ),

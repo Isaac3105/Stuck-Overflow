@@ -8,7 +8,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
-import '../../../../core/data/countries.dart';
+import '../../../../core/data/geography.dart';
 import '../../data/trip_providers.dart';
 import '../../domain/media.dart';
 import '../../domain/trip.dart';
@@ -320,7 +320,8 @@ class _TripPreviewDialog extends ConsumerWidget {
     
     final locationParts = <String>[];
     if (trip.countries.isNotEmpty) {
-      locationParts.add(countryNameEn(trip.countries.first));
+      final entry = resolveGeography(trip.countries.first);
+      locationParts.add(entry?.name ?? trip.countries.first);
     }
     if (trip.cities.isNotEmpty) {
       locationParts.add(trip.cities.first);
@@ -385,14 +386,18 @@ class _TripPreviewDialog extends ConsumerWidget {
                   children: trip.countries
                       .take(4)
                       .map(
-                        (c) => ClipRRect(
-                          borderRadius: BorderRadius.circular(3),
-                          child: SizedBox(
-                            width: 32,
-                            height: 22,
-                            child: Flag.fromString(c, fit: BoxFit.cover),
-                          ),
-                        ),
+                        (name) {
+                          final code = resolveGeography(name)?.code;
+                          if (code == null) return const SizedBox.shrink();
+                          return ClipRRect(
+                            borderRadius: BorderRadius.circular(3),
+                            child: SizedBox(
+                              width: 32,
+                              height: 22,
+                              child: Flag.fromString(code, fit: BoxFit.cover),
+                            ),
+                          );
+                        },
                       )
                       .toList(),
                 ),

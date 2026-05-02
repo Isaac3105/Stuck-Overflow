@@ -5,13 +5,15 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../../music/data/spotify_repository.dart';
+
 import '../../../../core/config/env.dart';
 import '../../../../core/services/gemini_service.dart';
 import '../../../../core/services/spotify_service.dart';
 import '../../data/trip_providers.dart';
 import '../../domain/day.dart';
 import '../../domain/trip.dart';
-import '../../../music/data/spotify_repository.dart';
+import '../../../../core/data/geography.dart';
 import '../widgets/activity_block_tile.dart';
 import '../widgets/empty_state.dart';
 import 'activity_block_form.dart';
@@ -163,17 +165,21 @@ class _TripHeader extends StatelessWidget {
       child: Row(
         children: [
           ...trip.countries.take(4).map<Widget>(
-                (c) => Padding(
-                  padding: const EdgeInsets.only(right: 6),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(3),
-                    child: SizedBox(
-                      width: 24,
-                      height: 16,
-                      child: Flag.fromString(c, fit: BoxFit.cover),
+                (name) {
+                  final code = resolveGeography(name)?.code;
+                  if (code == null) return const SizedBox.shrink();
+                  return Padding(
+                    padding: const EdgeInsets.only(right: 6),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(3),
+                      child: SizedBox(
+                        width: 24,
+                        height: 16,
+                        child: Flag.fromString(code, fit: BoxFit.cover),
+                      ),
                     ),
-                  ),
-                ),
+                  );
+                },
               ),
           if (trip.cities.isNotEmpty)
             Expanded(
@@ -238,7 +244,7 @@ class _SpotifySuggestions extends ConsumerWidget {
                         isScrollControlled: true,
                         builder: (_) => _SpotifyPlaylistPickerSheet(
                           tripId: tripId,
-                          countryCode: country,
+                          countryName: country,
                         ),
                       );
                     },
@@ -289,18 +295,18 @@ class _SpotifySuggestions extends ConsumerWidget {
 class _SpotifyPlaylistPickerSheet extends ConsumerWidget {
   const _SpotifyPlaylistPickerSheet({
     required this.tripId,
-    required this.countryCode,
+    required this.countryName,
   });
 
   final String tripId;
-  final String countryCode;
+  final String countryName;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final repo = ref.watch(spotifyRepositoryProvider);
     final messenger = ScaffoldMessenger.of(context);
     final async = ref.watch(
-      _spotifySuggestionsProvider((tripId: tripId, countryCode: countryCode)),
+      _spotifySuggestionsProvider((tripId: tripId, countryName: countryName)),
     );
 
     return SafeArea(
@@ -322,7 +328,7 @@ class _SpotifyPlaylistPickerSheet extends ConsumerWidget {
                 TextButton(
                   onPressed: () => ref.invalidate(
                     _spotifySuggestionsProvider(
-                      (tripId: tripId, countryCode: countryCode),
+                      (tripId: tripId, countryName: countryName),
                     ),
                   ),
                   child: const Text('Refresh'),
@@ -381,7 +387,7 @@ class _SpotifyPlaylistPickerSheet extends ConsumerWidget {
                                   try {
                                     await repo.selectPlaylistForTrip(
                                       tripId: tripId,
-                                      countryCode: countryCode,
+                                      countryName: countryName,
                                       playlist: p,
                                     );
                                     messenger.showSnackBar(
@@ -427,9 +433,9 @@ final _selectedPlaylistProvider =
 });
 
 final _spotifySuggestionsProvider = FutureProvider.autoDispose.family
-    <List<SpotifyPlaylist>, ({String tripId, String countryCode})>((ref, args) {
+    <List<SpotifyPlaylist>, ({String tripId, String countryName})>((ref, args) {
   return ref.watch(spotifyRepositoryProvider).suggestPlaylists(
-        countryCode: args.countryCode,
+        countryName: args.countryName,
         limit: 3,
       );
 });

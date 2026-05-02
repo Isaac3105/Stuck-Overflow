@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../../../core/data/geography.dart';
 import '../../../../core/services/media_capture_service.dart';
 import '../../../media/audio_player_tile.dart';
 import '../../../media/audio_recorder_button.dart';
@@ -357,8 +358,15 @@ class _HeaderCard extends ConsumerWidget {
       orElse: () => null,
     );
 
-    final cityLine = trip.cities.isEmpty ? null : trip.cities.join(' · ');
-    final countryLine = trip.countries.isEmpty ? null : trip.countries.join(' · ');
+    final locationParts = <String>[];
+    if (trip.countries.isNotEmpty) {
+      final entry = resolveGeography(trip.countries.first);
+      locationParts.add(entry?.name ?? trip.countries.first);
+    }
+    if (trip.cities.isNotEmpty) {
+      locationParts.add(trip.cities.first);
+    }
+    final locationLine = locationParts.isEmpty ? null : locationParts.join(', ');
 
     return AspectRatio(
       aspectRatio: 16 / 10,
@@ -414,23 +422,14 @@ class _HeaderCard extends ConsumerWidget {
                         ),
                   ),
                   const Spacer(),
-                  if (cityLine != null)
+                  if (locationLine != null)
                     Text(
-                      cityLine,
+                      locationLine,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: Theme.of(context).textTheme.titleMedium?.copyWith(
                             color: Colors.white,
                             fontWeight: FontWeight.w700,
-                          ),
-                    ),
-                  if (countryLine != null)
-                    Text(
-                      countryLine,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: Colors.white.withValues(alpha: 0.9),
                           ),
                     ),
                 ],
