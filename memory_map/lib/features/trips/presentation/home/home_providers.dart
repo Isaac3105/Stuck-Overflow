@@ -11,10 +11,12 @@ class FeaturedTripData {
     required this.trip,
     required this.photos,
     required this.audios,
+    this.mainImageIds = const {},
   });
   final Trip trip;
   final List<MediaItem> photos;
   final List<MediaItem> audios;
+  final Set<String> mainImageIds;
 
   String? get coverImagePath {
     if (photos.isEmpty) return null;
@@ -25,7 +27,13 @@ class FeaturedTripData {
       if (found != null) return found.filePath;
     }
 
-    // 2. We don't easily have access to days here, 
+    // 2. Day cover
+    if (mainImageIds.isNotEmpty) {
+      final found = photos.where((p) => mainImageIds.contains(p.id)).firstOrNull;
+      if (found != null) return found.filePath;
+    }
+
+    // 3. We don't easily have access to days here, 
     // but the photos list is already sorted chronologically.
     // So photos.first is the first photo of the trip.
     
@@ -75,7 +83,7 @@ final featuredCompletedTripProvider =
     if (photos.isEmpty) continue;
     final audios = media.where((m) => m.type == MediaType.audio).toList()
       ..sort((a, b) => a.takenAt.compareTo(b.takenAt));
-    return FeaturedTripData(trip: t, photos: photos, audios: audios);
+    return FeaturedTripData(trip: t, photos: photos, audios: audios, mainImageIds: mainImageIds);
   }
   // Fallback: any completed trip even without photos.
   final t = completed.first;
@@ -105,5 +113,5 @@ final tripFeaturedDataProvider =
   final audios = media.where((m) => m.type == MediaType.audio).toList()
     ..sort((a, b) => a.takenAt.compareTo(b.takenAt));
 
-  return FeaturedTripData(trip: trip, photos: photos, audios: audios);
+  return FeaturedTripData(trip: trip, photos: photos, audios: audios, mainImageIds: mainImageIds);
 });

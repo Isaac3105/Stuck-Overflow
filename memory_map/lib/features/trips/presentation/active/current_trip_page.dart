@@ -15,6 +15,8 @@ import '../../data/trip_providers.dart';
 import '../../domain/day.dart';
 import '../../domain/media.dart';
 import '../../domain/trip.dart';
+import '../../domain/trip_itinerary_unlock.dart';
+import '../widgets/day_rating_sheet.dart';
 import '../widgets/empty_state.dart';
 import '../widgets/weather_card.dart';
 
@@ -26,21 +28,21 @@ class CurrentTripPage extends ConsumerWidget {
     final currentTrip = ref.watch(currentTripProvider);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Viagem atual')),
+      appBar: AppBar(title: const Text('Current trip')),
       body: currentTrip.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(child: Text('Erro: $e')),
+        error: (e, _) => Center(child: Text('Error: $e')),
         data: (trip) {
           if (trip == null) {
             return EmptyState(
               icon: Icons.flight_takeoff_outlined,
-              title: 'Nenhuma viagem em curso',
+              title: 'No active trip',
               message:
-                  'Quando uma viagem planeada incluir o dia de hoje, ela aparecerá aqui automaticamente.',
+                  'When a planned trip includes today, it will show up here automatically.',
               action: FilledButton.icon(
                 onPressed: () => context.go('/plan'),
                 icon: const Icon(Icons.map_outlined),
-                label: const Text('Ir ao planeamento'),
+                label: const Text('Go to planner'),
               ),
             );
           }
@@ -51,92 +53,84 @@ class CurrentTripPage extends ConsumerWidget {
   }
 }
 
-class _CurrentTripBody extends ConsumerWidget {
+class _CurrentTripBody extends ConsumerStatefulWidget {
   const _CurrentTripBody({required this.trip});
   final Trip trip;
 
-  Future<void> _capturePhoto(BuildContext context, WidgetRef ref) async {
-    final messenger = ScaffoldMessenger.of(context);
-    final day = await ref.read(_todayTripDayProvider(trip.id).future);
-    if (day == null) {
-      messenger.showSnackBar(
-        const SnackBar(content: Text('Sem dia configurado para hoje.')),
-      );
-      return;
-    }
-    final media = await ref.read(mediaCaptureServiceProvider).capturePhoto(
-          tripId: trip.id,
-          dayId: day.id,
-        );
-    if (media == null) {
-      messenger.showSnackBar(
-        const SnackBar(content: Text('Captura cancelada ou sem permissão.')),
-      );
-    }
-  }
+  @override
+  ConsumerState<_CurrentTripBody> createState() => _CurrentTripBodyState();
+}
 
-  Future<void> _confirmTerminateDay(BuildContext context, WidgetRef ref) async {
-    final ok = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Terminar viagem'),
-        content: const Text(
-          'Isto marca a viagem como concluída. Podes continuar a ver as memórias no arquivo.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(false),
-            child: const Text('Cancelar'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.of(ctx).pop(true),
-            child: const Text('Concluir'),
-          ),
-        ],
-      ),
-    );
-    if (ok != true) return;
-    await ref.read(tripRepositoryProvider).setStatus(trip.id, TripStatus.completed);
-    if (context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Viagem concluída.')),
-      );
-    }
-  }
+class _CurrentTripBodyState extends ConsumerState<_CurrentTripBody> {
+  bool _mandatoryRatingInFlight = false;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final todayAsync = ref.watch(_todayTripDayProvider(trip.id));
-    final playlistAsync = ref.watch(_selectedPlaylistProviderForTrip(trip.id));
+  Widget build(BuildContext context) {
+    ref.watch(dayCalendarTickProvider);
+    final daysAsync = ref.watch(tripDaysProvider(widget.trip.id));
 
-    return todayAsync.when(
+    ref.listen<AsyncValue<List<TripDay>>>(tripDaysProvider(widget.trip.id), (prev, next) {
+      next.whenData((days) {
+        final pending = pendingPastDayNeedingRating(days, DateTime.now());
+        if (pending != null && !_mandatoryRatingInFlight) {
+          _offerMandatoryRating(pending);
+        }
+      });
+    });
+
+    return daysAsync.when(
       loading: () => const Center(child: CircularProgressIndicator()),
-      error: (e, _) => Center(child: Text('Erro: $e')),
-      data: (day) {
+      error: (e, _) => Center(child: Text('Error: $e')),
+      data: (days) {
+        final now = DateTime.now();
+        final day = unlockedItineraryDay(days, now);
+        final ratedToday = todayRatedDay(days, now);
+
         if (day == null) {
-          return const EmptyState(
-            icon: Icons.event_busy_outlined,
-            title: 'Sem dia configurado',
-            message: 'A viagem está activa mas não há um dia para hoje.',
+          return EmptyState(
+            icon: Icons.nights_stay_outlined,
+            title: 'Next day soon',
+            message:
+                'You already rated today. The next day’s itinerary unlocks tomorrow in the calendar.',
+            action: ratedToday == null
+                ? null
+                : Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      OutlinedButton.icon(
+                        onPressed: () =>
+                            _confirmUndoTodayRating(context, ratedToday),
+                        icon: const Icon(Icons.undo),
+                        label: const Text('Undo today’s rating'),
+                      ),
+                    ],
+                  ),
           );
         }
 
         final blocksAsync = ref.watch(dayBlocksProvider(day.id));
         final mediaAsync = ref.watch(dayMediaProvider(day.id));
-        final dateLabel = DateFormat("EEEE, d 'de' MMMM", 'pt_PT').format(day.date);
+        final dateLabel =
+            DateFormat('EEEE, MMMM d', 'en').format(day.date);
 
         return ListView(
           padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
           children: [
-            _HeaderCard(trip: trip, dateLabel: dateLabel, day: day),
+            _HeaderCard(trip: widget.trip, dateLabel: dateLabel, day: day),
+            const SizedBox(height: 10),
+            OutlinedButton.icon(
+              onPressed: () => _endDayAndRate(context, day),
+              icon: const Icon(Icons.star_rate_rounded),
+              label: const Text('End day and rate'),
+            ),
             const SizedBox(height: 10),
             Row(
               children: [
                 Expanded(
                   child: FilledButton.icon(
-                    onPressed: () => _capturePhoto(context, ref),
+                    onPressed: () => _capturePhoto(context, day.id),
                     icon: const Icon(Icons.camera_alt_outlined),
-                    label: const Text('Tirar foto'),
+                    label: const Text('Take photo'),
                   ),
                 ),
               ],
@@ -148,17 +142,17 @@ class _CurrentTripBody extends ConsumerWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Itinerário',
+                    Text('Itinerary',
                         style: Theme.of(context).textTheme.titleMedium),
                     const Divider(height: 16),
                     blocksAsync.when(
                       loading: () =>
                           const Center(child: CircularProgressIndicator()),
-                      error: (e, _) => Text('Erro: $e'),
+                      error: (e, _) => Text('Error: $e'),
                       data: (blocks) {
                         if (blocks.isEmpty) {
                           return Text(
-                            'Sem blocos para hoje. Adiciona-os no planeador.',
+                            'No blocks for today. Add them in the planner.',
                             style: Theme.of(context).textTheme.bodyMedium,
                           );
                         }
@@ -175,14 +169,24 @@ class _CurrentTripBody extends ConsumerWidget {
                                   overflow: TextOverflow.ellipsis,
                                 ),
                                 subtitle: Text('${b.startLabel} – ${b.endLabel}'),
-                                onTap: () => context.go('/plan/${trip.id}'),
+                                onTap: () => context.go(
+                                  Uri(
+                                    path: '/plan/${widget.trip.id}',
+                                    queryParameters: {'day': day.id},
+                                  ).toString(),
+                                ),
                               ),
                             if (blocks.length > shown.length)
                               Align(
                                 alignment: Alignment.centerLeft,
                                 child: TextButton(
-                                  onPressed: () => context.go('/plan/${trip.id}'),
-                                  child: const Text('Ver tudo no planeador'),
+                                  onPressed: () => context.go(
+                                    Uri(
+                                      path: '/plan/${widget.trip.id}',
+                                      queryParameters: {'day': day.id},
+                                    ).toString(),
+                                  ),
+                                  child: const Text('See all in planner'),
                                 ),
                               ),
                           ],
@@ -194,7 +198,7 @@ class _CurrentTripBody extends ConsumerWidget {
               ),
             ),
             const SizedBox(height: 10),
-            WeatherCard(countries: trip.countries),
+            WeatherCard(countries: widget.trip.countries),
             const SizedBox(height: 10),
             Row(
               children: [
@@ -203,7 +207,7 @@ class _CurrentTripBody extends ConsumerWidget {
                     child: Padding(
                       padding: const EdgeInsets.all(8),
                       child: AudioRecorderButton(
-                        tripId: trip.id,
+                        tripId: widget.trip.id,
                         dayId: day.id,
                         onRecorded: (mediaId) => ref
                             .read(tripRepositoryProvider)
@@ -214,107 +218,7 @@ class _CurrentTripBody extends ConsumerWidget {
                 ),
                 const SizedBox(width: 10),
                 Expanded(
-                  child: playlistAsync.when(
-                    loading: () => Card(
-                      child: Padding(
-                        padding: const EdgeInsets.all(12),
-                        child: Center(
-                          child: SizedBox(
-                            width: 22,
-                            height: 22,
-                            child: CircularProgressIndicator.adaptive(
-                              strokeWidth: 2,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                    error: (e, st) => Card(
-                      child: InkWell(
-                        borderRadius: BorderRadius.circular(12),
-                        onTap: () => context.go('/plan/${trip.id}'),
-                        child: Padding(
-                          padding: const EdgeInsets.all(12),
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(
-                                Icons.music_note_outlined,
-                                color: Theme.of(context).colorScheme.primary,
-                              ),
-                              const SizedBox(height: 6),
-                              Text(
-                                'Playlist',
-                                style: Theme.of(context).textTheme.bodySmall,
-                                textAlign: TextAlign.center,
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                    data: (p) => p == null
-                        ? Card(
-                            child: InkWell(
-                              borderRadius: BorderRadius.circular(12),
-                              onTap: () => context.go('/plan/${trip.id}'),
-                              child: Padding(
-                                padding: const EdgeInsets.all(12),
-                                child: Column(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    Icon(
-                                      Icons.music_note_outlined,
-                                      color: Theme.of(context).colorScheme.primary,
-                                    ),
-                                    const SizedBox(height: 6),
-                                    Text(
-                                      'Playlist',
-                                      style:
-                                          Theme.of(context).textTheme.bodySmall,
-                                      textAlign: TextAlign.center,
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          )
-                        : Card(
-                            child: InkWell(
-                              borderRadius: BorderRadius.circular(12),
-                              onTap: p.deepLink == null
-                                  ? null
-                                  : () => launchUrl(
-                                        Uri.parse(p.deepLink!),
-                                        mode: LaunchMode.externalApplication,
-                                      ),
-                              child: Padding(
-                                padding: const EdgeInsets.all(12),
-                                child: Column(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    Icon(
-                                      Icons.music_note_outlined,
-                                      color: Theme.of(context)
-                                          .colorScheme
-                                          .primary,
-                                    ),
-                                    const SizedBox(height: 6),
-                                    Text(
-                                      'Playlist',
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: Theme.of(context)
-                                          .textTheme
-                                          .bodySmall,
-                                      textAlign: TextAlign.center,
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ),
-                  ),
+                  child: _PlaylistCard(tripId: widget.trip.id),
                 ),
               ],
             ),
@@ -326,14 +230,239 @@ class _CurrentTripBody extends ConsumerWidget {
                 backgroundColor: Theme.of(context).colorScheme.error,
                 foregroundColor: Theme.of(context).colorScheme.onError,
               ),
-              onPressed: () => _confirmTerminateDay(context, ref),
-              child: const Text('TERMINAR VIAGEM'),
+              onPressed: () => _confirmTerminateTrip(context),
+              child: const Text('END TRIP'),
             ),
           ],
         );
       },
     );
   }
+
+
+  Future<void> _offerMandatoryRating(TripDay day) async {
+    if (!mounted || _mandatoryRatingInFlight) return;
+    _mandatoryRatingInFlight = true;
+    try {
+      final stars = await showDayRatingSheet(
+        context,
+        day: day,
+        title: 'How was this day?',
+        subtitle:
+            'Before moving on, rate this day from 1 to 5 stars.',
+        barrierDismissible: false,
+      );
+      if (!mounted) return;
+      if (stars != null) {
+        await ref.read(tripRepositoryProvider).setDayRating(
+              dayId: day.id,
+              stars: stars,
+            );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _mandatoryRatingInFlight = false);
+      }
+    }
+  }
+
+  Future<void> _confirmUndoTodayRating(
+    BuildContext context,
+    TripDay ratedToday,
+  ) async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Undo rating?'),
+        content: const Text(
+          'Your rating for this day will be removed and you will see today’s itinerary again.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text('Undo'),
+          ),
+        ],
+      ),
+    );
+    if (ok != true) return;
+    await ref.read(tripRepositoryProvider).clearDayRating(ratedToday.id);
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Rating cleared.')),
+      );
+    }
+  }
+
+  Future<void> _endDayAndRate(BuildContext context, TripDay day) async {
+    final stars = await showDayRatingSheet(
+      context,
+      day: day,
+      title: 'Rate this day',
+      subtitle: 'The next day’s itinerary only appears tomorrow in the calendar.',
+      barrierDismissible: false,
+    );
+    if (stars == null || !context.mounted) return;
+    await ref.read(tripRepositoryProvider).setDayRating(dayId: day.id, stars: stars);
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Day saved. See you tomorrow!')),
+      );
+    }
+  }
+
+  Future<void> _capturePhoto(BuildContext context, String dayId) async {
+    final messenger = ScaffoldMessenger.of(context);
+    final media = await ref.read(mediaCaptureServiceProvider).capturePhoto(
+          tripId: widget.trip.id,
+          dayId: dayId,
+        );
+    if (media == null) {
+      messenger.showSnackBar(
+        const SnackBar(content: Text('Capture canceled or permission denied.')),
+      );
+    }
+  }
+
+  Future<void> _confirmTerminateTrip(BuildContext context) async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('End trip'),
+        content: const Text(
+          'This marks the trip as completed. You can still browse memories in the archive.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text('Complete'),
+          ),
+        ],
+      ),
+    );
+    if (ok != true) return;
+    await ref
+        .read(tripRepositoryProvider)
+        .setStatus(widget.trip.id, TripStatus.completed);
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Trip completed.')),
+      );
+    }
+  }
+}
+
+class _PlaylistCard extends ConsumerWidget {
+  const _PlaylistCard({required this.tripId});
+  final String tripId;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final playlistAsync = ref.watch(_selectedPlaylistProviderForTrip(tripId));
+    return playlistAsync.when(
+      loading: () => Card(
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Center(
+            child: SizedBox(
+              width: 22,
+              height: 22,
+              child: CircularProgressIndicator.adaptive(strokeWidth: 2),
+            ),
+          ),
+        ),
+      ),
+      error: (e, st) => Card(
+        child: InkWell(
+          borderRadius: BorderRadius.circular(12),
+          onTap: () => context.go('/plan/$tripId'),
+          child: Padding(
+            padding: const EdgeInsets.all(12),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  Icons.music_note_outlined,
+                  color: Theme.of(context).colorScheme.primary,
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  'Playlist',
+                  style: Theme.of(context).textTheme.bodySmall,
+                  textAlign: TextAlign.center,
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+      data: (p) => p == null
+          ? Card(
+              child: InkWell(
+                borderRadius: BorderRadius.circular(12),
+                onTap: () => context.go('/plan/$tripId'),
+                child: Padding(
+                  padding: const EdgeInsets.all(12),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.music_note_outlined,
+                        color: Theme.of(context).colorScheme.primary,
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        'Playlist',
+                        style: Theme.of(context).textTheme.bodySmall,
+                        textAlign: TextAlign.center,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            )
+          : Card(
+              child: InkWell(
+                borderRadius: BorderRadius.circular(12),
+                onTap: p.deepLink == null
+                    ? null
+                    : () => launchUrl(
+                          Uri.parse(p.deepLink!),
+                          mode: LaunchMode.externalApplication,
+                        ),
+                child: Padding(
+                  padding: const EdgeInsets.all(12),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.music_note_outlined,
+                        color: Theme.of(context).colorScheme.primary,
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        'Playlist',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: Theme.of(context).textTheme.bodySmall,
+                        textAlign: TextAlign.center,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+    );
+  }
+
 }
 
 class _HeaderCard extends ConsumerWidget {
@@ -370,7 +499,8 @@ class _HeaderCard extends ConsumerWidget {
     );
 
     final cityLine = trip.cities.isEmpty ? null : trip.cities.join(' · ');
-    final countryLine = trip.countries.isEmpty ? null : trip.countries.join(' · ');
+    final countryLine =
+        trip.countries.isEmpty ? null : trip.countries.join(' · ');
 
     return AspectRatio(
       aspectRatio: 16 / 10,
@@ -466,18 +596,18 @@ class _CapturesSection extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Text('Capturas de hoje', style: Theme.of(context).textTheme.titleMedium),
+        Text("Today's captures", style: Theme.of(context).textTheme.titleMedium),
         const SizedBox(height: 8),
         mediaAsync.when(
           loading: () => const Center(child: CircularProgressIndicator()),
-          error: (e, _) => Text('Erro: $e'),
+          error: (e, _) => Text('Error: $e'),
           data: (media) {
             if (media.isEmpty) {
               return Card(
                 child: Padding(
                   padding: const EdgeInsets.all(16),
                   child: Text(
-                    'Ainda sem fotos ou áudios para hoje.',
+                    'No photos or audio for today yet.',
                     style: Theme.of(context).textTheme.bodyMedium,
                   ),
                 ),
@@ -518,7 +648,7 @@ class _CapturesSection extends StatelessWidget {
                       padding: const EdgeInsets.symmetric(vertical: 4),
                       child: AudioPlayerTile(
                         filePath: a.filePath,
-                        label: 'Áudio às ${DateFormat('HH:mm').format(a.takenAt)}',
+                        label: 'Audio at ${DateFormat('HH:mm').format(a.takenAt)}',
                       ),
                     ),
                   ),
@@ -532,20 +662,8 @@ class _CapturesSection extends StatelessWidget {
   }
 }
 
-final _todayTripDayProvider = StreamProvider.autoDispose.family((ref, String tripId) {
-  return ref.watch(tripRepositoryProvider).watchDays(tripId).map((days) {
-    final today = DateTime.now();
-    final todayKey = DateTime(today.year, today.month, today.day);
-    for (final d in days) {
-      final key = DateTime(d.date.year, d.date.month, d.date.day);
-      if (key == todayKey) return d;
-    }
-    return null;
-  });
-});
 
 final _selectedPlaylistProviderForTrip =
     StreamProvider.autoDispose.family((ref, String tripId) {
   return ref.watch(spotifyRepositoryProvider).watchSelectedPlaylistForTrip(tripId);
 });
-

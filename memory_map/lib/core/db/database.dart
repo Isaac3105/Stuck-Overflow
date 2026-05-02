@@ -38,7 +38,21 @@ class AppDatabase extends _$AppDatabase {
             await m.addColumn(trips, trips.selectedPlaylistId);
           }
           if (from < 3) {
-            await m.addColumn(days, days.coverMediaId);
+            try {
+              await m.addColumn(days, days.coverMediaId);
+            } catch (e) {
+              debugPrint('Migration warning coverMediaId: $e');
+            }
+            try {
+              await m.addColumn(days, days.dayRating);
+            } catch (e) {
+              debugPrint('Migration warning dayRating: $e');
+            }
+            try {
+              await m.addColumn(trips, trips.averageDayRating);
+            } catch (e) {
+              debugPrint('Migration warning averageDayRating: $e');
+            }
           }
         },
       );

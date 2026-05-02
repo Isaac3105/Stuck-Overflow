@@ -2,7 +2,7 @@
 /// If a city isn't listed, the UI still allows manual entry.
 const kCitiesByCountry = <String, List<String>>{
   'PT': [
-    'Lisboa',
+    'Lisbon',
     'Porto',
     'Braga',
     'Coimbra',
@@ -15,8 +15,8 @@ const kCitiesByCountry = <String, List<String>>{
     'Madrid',
     'Barcelona',
     'Valencia',
-    'Sevilla',
-    'Málaga',
+    'Seville',
+    'Malaga',
     'Bilbao',
     'Granada',
     'Zaragoza',
@@ -32,36 +32,36 @@ const kCitiesByCountry = <String, List<String>>{
     'Nantes',
   ],
   'IT': [
-    'Roma',
-    'Milão',
-    'Veneza',
-    'Florença',
-    'Nápoles',
-    'Turim',
-    'Bolonha',
+    'Rome',
+    'Milan',
+    'Venice',
+    'Florence',
+    'Naples',
+    'Turin',
+    'Bologna',
     'Pisa',
   ],
   'DE': [
-    'Berlim',
-    'Munique',
-    'Hamburgo',
+    'Berlin',
+    'Munich',
+    'Hamburg',
     'Frankfurt',
-    'Colónia',
+    'Cologne',
     'Dresden',
     'Stuttgart',
   ],
   'GB': [
-    'Londres',
+    'London',
     'Manchester',
     'Liverpool',
-    'Edimburgo',
+    'Edinburgh',
     'Glasgow',
     'Birmingham',
   ],
   'NL': [
-    'Amesterdão',
-    'Roterdão',
-    'Haia',
+    'Amsterdam',
+    'Rotterdam',
+    'The Hague',
     'Utrecht',
     'Eindhoven',
   ],
@@ -96,4 +96,3 @@ List<String> citiesForCountries(List<String> countryCodes) {
   result.sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
   return result;
 }
-

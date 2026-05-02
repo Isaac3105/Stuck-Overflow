@@ -9,6 +9,7 @@ class TripDay {
     this.journalNote,
     this.audioJournalMediaId,
     this.coverMediaId,
+    this.dayRating,
   });
 
   final String id;
@@ -17,6 +18,8 @@ class TripDay {
   final String? journalNote;
   final String? audioJournalMediaId;
   final String? coverMediaId;
+  /// 1–5 after the day is closed (midnight rule or user ends day early).
+  final int? dayRating;
 
   TripDay copyWith({
     String? journalNote,
@@ -24,6 +27,8 @@ class TripDay {
     String? coverMediaId,
     bool clearAudioJournal = false,
     bool clearCoverMedia = false,
+    int? dayRating,
+    bool clearDayRating = false,
   }) {
     return TripDay(
       id: id,
@@ -36,6 +41,7 @@ class TripDay {
       coverMediaId: clearCoverMedia
           ? null
           : (coverMediaId ?? this.coverMediaId),
+      dayRating: clearDayRating ? null : (dayRating ?? this.dayRating),
     );
   }
 }

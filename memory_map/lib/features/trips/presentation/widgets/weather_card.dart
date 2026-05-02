@@ -30,10 +30,10 @@ class WeatherCard extends ConsumerWidget {
             height: 56,
             child: Center(child: CircularProgressIndicator()),
           ),
-          error: (e, _) => const Text('Sem clima disponível'),
+          error: (e, _) => const Text('No weather available'),
           data: (w) {
             if (w == null) {
-              return const Text('Sem clima disponível');
+              return const Text('No weather available');
             }
             return Row(
               children: [

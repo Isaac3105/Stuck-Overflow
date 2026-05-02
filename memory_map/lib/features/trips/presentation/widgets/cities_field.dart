@@ -8,7 +8,7 @@ class CitiesField extends StatefulWidget {
     required this.selectedCountries,
     required this.cities,
     required this.onChanged,
-    this.label = 'Cidades',
+    this.label = 'Cities',
   });
 
   final List<String> selectedCountries;
@@ -24,7 +24,7 @@ class _CitiesFieldState extends State<CitiesField> {
   Future<void> _open() async {
     if (widget.selectedCountries.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Escolhe um país primeiro.')),
+        const SnackBar(content: Text('Choose a country first.')),
       );
       return;
     }
@@ -54,9 +54,9 @@ class _CitiesFieldState extends State<CitiesField> {
           suffixIcon: const Icon(Icons.search),
         ),
         child: widget.selectedCountries.isEmpty
-            ? const Text('Escolhe um país para desbloquear as cidades')
+            ? const Text('Pick a country to unlock city suggestions')
             : widget.cities.isEmpty
-                ? const Text('Toca para escolher')
+                ? const Text('Tap to choose')
                 : Wrap(
                     spacing: 6,
                     runSpacing: 6,
@@ -141,7 +141,7 @@ class _CitySearchSheetState extends State<_CitySearchSheet> {
                 autofocus: true,
                 decoration: const InputDecoration(
                   prefixIcon: Icon(Icons.search),
-                  hintText: 'Pesquisar cidade…',
+                  hintText: 'Search city…',
                 ),
                 onChanged: (v) => setState(() => _query = v),
               ),
@@ -153,7 +153,7 @@ class _CitySearchSheetState extends State<_CitySearchSheet> {
                 textInputAction: TextInputAction.done,
                 decoration: InputDecoration(
                   prefixIcon: const Icon(Icons.add_location_alt_outlined),
-                  hintText: 'Adicionar manualmente',
+                  hintText: 'Add manually',
                   suffixIcon: IconButton(
                     onPressed: _addManual,
                     icon: const Icon(Icons.add),
@@ -164,7 +164,7 @@ class _CitySearchSheetState extends State<_CitySearchSheet> {
             ),
             Expanded(
               child: filtered.isEmpty
-                  ? const Center(child: Text('Sem resultados'))
+                  ? const Center(child: Text('No results'))
                   : ListView.builder(
                       controller: scroll,
                       itemCount: filtered.length,
@@ -186,7 +186,7 @@ class _CitySearchSheetState extends State<_CitySearchSheet> {
                 child: FilledButton(
                   onPressed: () =>
                       Navigator.of(context).pop(_selected.toList()),
-                  child: const Text('Concluído'),
+                  child: const Text('Done'),
                 ),
               ),
             ),

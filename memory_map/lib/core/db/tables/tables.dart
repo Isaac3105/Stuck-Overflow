@@ -11,6 +11,8 @@ class Trips extends Table {
   TextColumn get status => text().withDefault(const Constant('planning'))();
   TextColumn get coverMediaId => text().nullable()();
   TextColumn get selectedPlaylistId => text().nullable()();
+  /// Average of day ratings when every calendar day of the trip has a rating.
+  RealColumn get averageDayRating => real().nullable()();
   IntColumn get createdAt => integer()();
 
   @override
@@ -25,6 +27,8 @@ class Days extends Table {
   TextColumn get journalNote => text().nullable()();
   TextColumn get audioJournalMediaId => text().nullable()();
   TextColumn get coverMediaId => text().nullable()();
+  /// 1–5 stars after the calendar day ends (or user ends the day early).
+  IntColumn get dayRating => integer().nullable()();
 
   @override
   Set<Column> get primaryKey => {id};

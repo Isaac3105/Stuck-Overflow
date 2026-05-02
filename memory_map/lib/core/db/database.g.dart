@@ -104,6 +104,17 @@ class $TripsTable extends Trips with TableInfo<$TripsTable, TripRow> {
         type: DriftSqlType.string,
         requiredDuringInsert: false,
       );
+  static const VerificationMeta _averageDayRatingMeta = const VerificationMeta(
+    'averageDayRating',
+  );
+  @override
+  late final GeneratedColumn<double> averageDayRating = GeneratedColumn<double>(
+    'average_day_rating',
+    aliasedName,
+    true,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _createdAtMeta = const VerificationMeta(
     'createdAt',
   );
@@ -126,6 +137,7 @@ class $TripsTable extends Trips with TableInfo<$TripsTable, TripRow> {
     status,
     coverMediaId,
     selectedPlaylistId,
+    averageDayRating,
     createdAt,
   ];
   @override
@@ -208,6 +220,15 @@ class $TripsTable extends Trips with TableInfo<$TripsTable, TripRow> {
         ),
       );
     }
+    if (data.containsKey('average_day_rating')) {
+      context.handle(
+        _averageDayRatingMeta,
+        averageDayRating.isAcceptableOrUnknown(
+          data['average_day_rating']!,
+          _averageDayRatingMeta,
+        ),
+      );
+    }
     if (data.containsKey('created_at')) {
       context.handle(
         _createdAtMeta,
@@ -261,6 +282,10 @@ class $TripsTable extends Trips with TableInfo<$TripsTable, TripRow> {
         DriftSqlType.string,
         data['${effectivePrefix}selected_playlist_id'],
       ),
+      averageDayRating: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}average_day_rating'],
+      ),
       createdAt: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
         data['${effectivePrefix}created_at'],
@@ -284,6 +309,9 @@ class TripRow extends DataClass implements Insertable<TripRow> {
   final String status;
   final String? coverMediaId;
   final String? selectedPlaylistId;
+
+  /// Average of day ratings when every calendar day of the trip has a rating.
+  final double? averageDayRating;
   final int createdAt;
   const TripRow({
     required this.id,
@@ -295,6 +323,7 @@ class TripRow extends DataClass implements Insertable<TripRow> {
     required this.status,
     this.coverMediaId,
     this.selectedPlaylistId,
+    this.averageDayRating,
     required this.createdAt,
   });
   @override
@@ -312,6 +341,9 @@ class TripRow extends DataClass implements Insertable<TripRow> {
     }
     if (!nullToAbsent || selectedPlaylistId != null) {
       map['selected_playlist_id'] = Variable<String>(selectedPlaylistId);
+    }
+    if (!nullToAbsent || averageDayRating != null) {
+      map['average_day_rating'] = Variable<double>(averageDayRating);
     }
     map['created_at'] = Variable<int>(createdAt);
     return map;
@@ -332,6 +364,9 @@ class TripRow extends DataClass implements Insertable<TripRow> {
       selectedPlaylistId: selectedPlaylistId == null && nullToAbsent
           ? const Value.absent()
           : Value(selectedPlaylistId),
+      averageDayRating: averageDayRating == null && nullToAbsent
+          ? const Value.absent()
+          : Value(averageDayRating),
       createdAt: Value(createdAt),
     );
   }
@@ -353,6 +388,7 @@ class TripRow extends DataClass implements Insertable<TripRow> {
       selectedPlaylistId: serializer.fromJson<String?>(
         json['selectedPlaylistId'],
       ),
+      averageDayRating: serializer.fromJson<double?>(json['averageDayRating']),
       createdAt: serializer.fromJson<int>(json['createdAt']),
     );
   }
@@ -369,6 +405,7 @@ class TripRow extends DataClass implements Insertable<TripRow> {
       'status': serializer.toJson<String>(status),
       'coverMediaId': serializer.toJson<String?>(coverMediaId),
       'selectedPlaylistId': serializer.toJson<String?>(selectedPlaylistId),
+      'averageDayRating': serializer.toJson<double?>(averageDayRating),
       'createdAt': serializer.toJson<int>(createdAt),
     };
   }
@@ -383,6 +420,7 @@ class TripRow extends DataClass implements Insertable<TripRow> {
     String? status,
     Value<String?> coverMediaId = const Value.absent(),
     Value<String?> selectedPlaylistId = const Value.absent(),
+    Value<double?> averageDayRating = const Value.absent(),
     int? createdAt,
   }) => TripRow(
     id: id ?? this.id,
@@ -396,6 +434,9 @@ class TripRow extends DataClass implements Insertable<TripRow> {
     selectedPlaylistId: selectedPlaylistId.present
         ? selectedPlaylistId.value
         : this.selectedPlaylistId,
+    averageDayRating: averageDayRating.present
+        ? averageDayRating.value
+        : this.averageDayRating,
     createdAt: createdAt ?? this.createdAt,
   );
   TripRow copyWithCompanion(TripsCompanion data) {
@@ -417,6 +458,9 @@ class TripRow extends DataClass implements Insertable<TripRow> {
       selectedPlaylistId: data.selectedPlaylistId.present
           ? data.selectedPlaylistId.value
           : this.selectedPlaylistId,
+      averageDayRating: data.averageDayRating.present
+          ? data.averageDayRating.value
+          : this.averageDayRating,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
     );
   }
@@ -433,6 +477,7 @@ class TripRow extends DataClass implements Insertable<TripRow> {
           ..write('status: $status, ')
           ..write('coverMediaId: $coverMediaId, ')
           ..write('selectedPlaylistId: $selectedPlaylistId, ')
+          ..write('averageDayRating: $averageDayRating, ')
           ..write('createdAt: $createdAt')
           ..write(')'))
         .toString();
@@ -449,6 +494,7 @@ class TripRow extends DataClass implements Insertable<TripRow> {
     status,
     coverMediaId,
     selectedPlaylistId,
+    averageDayRating,
     createdAt,
   );
   @override
@@ -464,6 +510,7 @@ class TripRow extends DataClass implements Insertable<TripRow> {
           other.status == this.status &&
           other.coverMediaId == this.coverMediaId &&
           other.selectedPlaylistId == this.selectedPlaylistId &&
+          other.averageDayRating == this.averageDayRating &&
           other.createdAt == this.createdAt);
 }
 
@@ -477,6 +524,7 @@ class TripsCompanion extends UpdateCompanion<TripRow> {
   final Value<String> status;
   final Value<String?> coverMediaId;
   final Value<String?> selectedPlaylistId;
+  final Value<double?> averageDayRating;
   final Value<int> createdAt;
   final Value<int> rowid;
   const TripsCompanion({
@@ -489,6 +537,7 @@ class TripsCompanion extends UpdateCompanion<TripRow> {
     this.status = const Value.absent(),
     this.coverMediaId = const Value.absent(),
     this.selectedPlaylistId = const Value.absent(),
+    this.averageDayRating = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.rowid = const Value.absent(),
   });
@@ -502,6 +551,7 @@ class TripsCompanion extends UpdateCompanion<TripRow> {
     this.status = const Value.absent(),
     this.coverMediaId = const Value.absent(),
     this.selectedPlaylistId = const Value.absent(),
+    this.averageDayRating = const Value.absent(),
     required int createdAt,
     this.rowid = const Value.absent(),
   }) : id = Value(id),
@@ -519,6 +569,7 @@ class TripsCompanion extends UpdateCompanion<TripRow> {
     Expression<String>? status,
     Expression<String>? coverMediaId,
     Expression<String>? selectedPlaylistId,
+    Expression<double>? averageDayRating,
     Expression<int>? createdAt,
     Expression<int>? rowid,
   }) {
@@ -533,6 +584,7 @@ class TripsCompanion extends UpdateCompanion<TripRow> {
       if (coverMediaId != null) 'cover_media_id': coverMediaId,
       if (selectedPlaylistId != null)
         'selected_playlist_id': selectedPlaylistId,
+      if (averageDayRating != null) 'average_day_rating': averageDayRating,
       if (createdAt != null) 'created_at': createdAt,
       if (rowid != null) 'rowid': rowid,
     });
@@ -548,6 +600,7 @@ class TripsCompanion extends UpdateCompanion<TripRow> {
     Value<String>? status,
     Value<String?>? coverMediaId,
     Value<String?>? selectedPlaylistId,
+    Value<double?>? averageDayRating,
     Value<int>? createdAt,
     Value<int>? rowid,
   }) {
@@ -561,6 +614,7 @@ class TripsCompanion extends UpdateCompanion<TripRow> {
       status: status ?? this.status,
       coverMediaId: coverMediaId ?? this.coverMediaId,
       selectedPlaylistId: selectedPlaylistId ?? this.selectedPlaylistId,
+      averageDayRating: averageDayRating ?? this.averageDayRating,
       createdAt: createdAt ?? this.createdAt,
       rowid: rowid ?? this.rowid,
     );
@@ -596,6 +650,9 @@ class TripsCompanion extends UpdateCompanion<TripRow> {
     if (selectedPlaylistId.present) {
       map['selected_playlist_id'] = Variable<String>(selectedPlaylistId.value);
     }
+    if (averageDayRating.present) {
+      map['average_day_rating'] = Variable<double>(averageDayRating.value);
+    }
     if (createdAt.present) {
       map['created_at'] = Variable<int>(createdAt.value);
     }
@@ -617,6 +674,7 @@ class TripsCompanion extends UpdateCompanion<TripRow> {
           ..write('status: $status, ')
           ..write('coverMediaId: $coverMediaId, ')
           ..write('selectedPlaylistId: $selectedPlaylistId, ')
+          ..write('averageDayRating: $averageDayRating, ')
           ..write('createdAt: $createdAt, ')
           ..write('rowid: $rowid')
           ..write(')'))
@@ -689,6 +747,17 @@ class $DaysTable extends Days with TableInfo<$DaysTable, DayRow> {
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _dayRatingMeta = const VerificationMeta(
+    'dayRating',
+  );
+  @override
+  late final GeneratedColumn<int> dayRating = GeneratedColumn<int>(
+    'day_rating',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -697,6 +766,7 @@ class $DaysTable extends Days with TableInfo<$DaysTable, DayRow> {
     journalNote,
     audioJournalMediaId,
     coverMediaId,
+    dayRating,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -758,6 +828,12 @@ class $DaysTable extends Days with TableInfo<$DaysTable, DayRow> {
         ),
       );
     }
+    if (data.containsKey('day_rating')) {
+      context.handle(
+        _dayRatingMeta,
+        dayRating.isAcceptableOrUnknown(data['day_rating']!, _dayRatingMeta),
+      );
+    }
     return context;
   }
 
@@ -791,6 +867,10 @@ class $DaysTable extends Days with TableInfo<$DaysTable, DayRow> {
         DriftSqlType.string,
         data['${effectivePrefix}cover_media_id'],
       ),
+      dayRating: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}day_rating'],
+      ),
     );
   }
 
@@ -807,6 +887,9 @@ class DayRow extends DataClass implements Insertable<DayRow> {
   final String? journalNote;
   final String? audioJournalMediaId;
   final String? coverMediaId;
+
+  /// 1–5 stars after the calendar day ends (or user ends the day early).
+  final int? dayRating;
   const DayRow({
     required this.id,
     required this.tripId,
@@ -814,6 +897,7 @@ class DayRow extends DataClass implements Insertable<DayRow> {
     this.journalNote,
     this.audioJournalMediaId,
     this.coverMediaId,
+    this.dayRating,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -829,6 +913,9 @@ class DayRow extends DataClass implements Insertable<DayRow> {
     }
     if (!nullToAbsent || coverMediaId != null) {
       map['cover_media_id'] = Variable<String>(coverMediaId);
+    }
+    if (!nullToAbsent || dayRating != null) {
+      map['day_rating'] = Variable<int>(dayRating);
     }
     return map;
   }
@@ -847,6 +934,9 @@ class DayRow extends DataClass implements Insertable<DayRow> {
       coverMediaId: coverMediaId == null && nullToAbsent
           ? const Value.absent()
           : Value(coverMediaId),
+      dayRating: dayRating == null && nullToAbsent
+          ? const Value.absent()
+          : Value(dayRating),
     );
   }
 
@@ -864,6 +954,7 @@ class DayRow extends DataClass implements Insertable<DayRow> {
         json['audioJournalMediaId'],
       ),
       coverMediaId: serializer.fromJson<String?>(json['coverMediaId']),
+      dayRating: serializer.fromJson<int?>(json['dayRating']),
     );
   }
   @override
@@ -876,6 +967,7 @@ class DayRow extends DataClass implements Insertable<DayRow> {
       'journalNote': serializer.toJson<String?>(journalNote),
       'audioJournalMediaId': serializer.toJson<String?>(audioJournalMediaId),
       'coverMediaId': serializer.toJson<String?>(coverMediaId),
+      'dayRating': serializer.toJson<int?>(dayRating),
     };
   }
 
@@ -886,6 +978,7 @@ class DayRow extends DataClass implements Insertable<DayRow> {
     Value<String?> journalNote = const Value.absent(),
     Value<String?> audioJournalMediaId = const Value.absent(),
     Value<String?> coverMediaId = const Value.absent(),
+    Value<int?> dayRating = const Value.absent(),
   }) => DayRow(
     id: id ?? this.id,
     tripId: tripId ?? this.tripId,
@@ -895,6 +988,7 @@ class DayRow extends DataClass implements Insertable<DayRow> {
         ? audioJournalMediaId.value
         : this.audioJournalMediaId,
     coverMediaId: coverMediaId.present ? coverMediaId.value : this.coverMediaId,
+    dayRating: dayRating.present ? dayRating.value : this.dayRating,
   );
   DayRow copyWithCompanion(DaysCompanion data) {
     return DayRow(
@@ -910,6 +1004,7 @@ class DayRow extends DataClass implements Insertable<DayRow> {
       coverMediaId: data.coverMediaId.present
           ? data.coverMediaId.value
           : this.coverMediaId,
+      dayRating: data.dayRating.present ? data.dayRating.value : this.dayRating,
     );
   }
 
@@ -921,7 +1016,8 @@ class DayRow extends DataClass implements Insertable<DayRow> {
           ..write('date: $date, ')
           ..write('journalNote: $journalNote, ')
           ..write('audioJournalMediaId: $audioJournalMediaId, ')
-          ..write('coverMediaId: $coverMediaId')
+          ..write('coverMediaId: $coverMediaId, ')
+          ..write('dayRating: $dayRating')
           ..write(')'))
         .toString();
   }
@@ -934,6 +1030,7 @@ class DayRow extends DataClass implements Insertable<DayRow> {
     journalNote,
     audioJournalMediaId,
     coverMediaId,
+    dayRating,
   );
   @override
   bool operator ==(Object other) =>
@@ -944,7 +1041,8 @@ class DayRow extends DataClass implements Insertable<DayRow> {
           other.date == this.date &&
           other.journalNote == this.journalNote &&
           other.audioJournalMediaId == this.audioJournalMediaId &&
-          other.coverMediaId == this.coverMediaId);
+          other.coverMediaId == this.coverMediaId &&
+          other.dayRating == this.dayRating);
 }
 
 class DaysCompanion extends UpdateCompanion<DayRow> {
@@ -954,6 +1052,7 @@ class DaysCompanion extends UpdateCompanion<DayRow> {
   final Value<String?> journalNote;
   final Value<String?> audioJournalMediaId;
   final Value<String?> coverMediaId;
+  final Value<int?> dayRating;
   final Value<int> rowid;
   const DaysCompanion({
     this.id = const Value.absent(),
@@ -962,6 +1061,7 @@ class DaysCompanion extends UpdateCompanion<DayRow> {
     this.journalNote = const Value.absent(),
     this.audioJournalMediaId = const Value.absent(),
     this.coverMediaId = const Value.absent(),
+    this.dayRating = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   DaysCompanion.insert({
@@ -971,6 +1071,7 @@ class DaysCompanion extends UpdateCompanion<DayRow> {
     this.journalNote = const Value.absent(),
     this.audioJournalMediaId = const Value.absent(),
     this.coverMediaId = const Value.absent(),
+    this.dayRating = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id),
        tripId = Value(tripId),
@@ -982,6 +1083,7 @@ class DaysCompanion extends UpdateCompanion<DayRow> {
     Expression<String>? journalNote,
     Expression<String>? audioJournalMediaId,
     Expression<String>? coverMediaId,
+    Expression<int>? dayRating,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -992,6 +1094,7 @@ class DaysCompanion extends UpdateCompanion<DayRow> {
       if (audioJournalMediaId != null)
         'audio_journal_media_id': audioJournalMediaId,
       if (coverMediaId != null) 'cover_media_id': coverMediaId,
+      if (dayRating != null) 'day_rating': dayRating,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -1003,6 +1106,7 @@ class DaysCompanion extends UpdateCompanion<DayRow> {
     Value<String?>? journalNote,
     Value<String?>? audioJournalMediaId,
     Value<String?>? coverMediaId,
+    Value<int?>? dayRating,
     Value<int>? rowid,
   }) {
     return DaysCompanion(
@@ -1012,6 +1116,7 @@ class DaysCompanion extends UpdateCompanion<DayRow> {
       journalNote: journalNote ?? this.journalNote,
       audioJournalMediaId: audioJournalMediaId ?? this.audioJournalMediaId,
       coverMediaId: coverMediaId ?? this.coverMediaId,
+      dayRating: dayRating ?? this.dayRating,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -1039,6 +1144,9 @@ class DaysCompanion extends UpdateCompanion<DayRow> {
     if (coverMediaId.present) {
       map['cover_media_id'] = Variable<String>(coverMediaId.value);
     }
+    if (dayRating.present) {
+      map['day_rating'] = Variable<int>(dayRating.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -1054,6 +1162,7 @@ class DaysCompanion extends UpdateCompanion<DayRow> {
           ..write('journalNote: $journalNote, ')
           ..write('audioJournalMediaId: $audioJournalMediaId, ')
           ..write('coverMediaId: $coverMediaId, ')
+          ..write('dayRating: $dayRating, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -3355,6 +3464,7 @@ typedef $$TripsTableCreateCompanionBuilder =
       Value<String> status,
       Value<String?> coverMediaId,
       Value<String?> selectedPlaylistId,
+      Value<double?> averageDayRating,
       required int createdAt,
       Value<int> rowid,
     });
@@ -3369,6 +3479,7 @@ typedef $$TripsTableUpdateCompanionBuilder =
       Value<String> status,
       Value<String?> coverMediaId,
       Value<String?> selectedPlaylistId,
+      Value<double?> averageDayRating,
       Value<int> createdAt,
       Value<int> rowid,
     });
@@ -3423,6 +3534,11 @@ class $$TripsTableFilterComposer extends Composer<_$AppDatabase, $TripsTable> {
 
   ColumnFilters<String> get selectedPlaylistId => $composableBuilder(
     column: $table.selectedPlaylistId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get averageDayRating => $composableBuilder(
+    column: $table.averageDayRating,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -3486,6 +3602,11 @@ class $$TripsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<double> get averageDayRating => $composableBuilder(
+    column: $table.averageDayRating,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<int> get createdAt => $composableBuilder(
     column: $table.createdAt,
     builder: (column) => ColumnOrderings(column),
@@ -3536,6 +3657,11 @@ class $$TripsTableAnnotationComposer
     builder: (column) => column,
   );
 
+  GeneratedColumn<double> get averageDayRating => $composableBuilder(
+    column: $table.averageDayRating,
+    builder: (column) => column,
+  );
+
   GeneratedColumn<int> get createdAt =>
       $composableBuilder(column: $table.createdAt, builder: (column) => column);
 }
@@ -3577,6 +3703,7 @@ class $$TripsTableTableManager
                 Value<String> status = const Value.absent(),
                 Value<String?> coverMediaId = const Value.absent(),
                 Value<String?> selectedPlaylistId = const Value.absent(),
+                Value<double?> averageDayRating = const Value.absent(),
                 Value<int> createdAt = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => TripsCompanion(
@@ -3589,6 +3716,7 @@ class $$TripsTableTableManager
                 status: status,
                 coverMediaId: coverMediaId,
                 selectedPlaylistId: selectedPlaylistId,
+                averageDayRating: averageDayRating,
                 createdAt: createdAt,
                 rowid: rowid,
               ),
@@ -3603,6 +3731,7 @@ class $$TripsTableTableManager
                 Value<String> status = const Value.absent(),
                 Value<String?> coverMediaId = const Value.absent(),
                 Value<String?> selectedPlaylistId = const Value.absent(),
+                Value<double?> averageDayRating = const Value.absent(),
                 required int createdAt,
                 Value<int> rowid = const Value.absent(),
               }) => TripsCompanion.insert(
@@ -3615,6 +3744,7 @@ class $$TripsTableTableManager
                 status: status,
                 coverMediaId: coverMediaId,
                 selectedPlaylistId: selectedPlaylistId,
+                averageDayRating: averageDayRating,
                 createdAt: createdAt,
                 rowid: rowid,
               ),
@@ -3648,6 +3778,7 @@ typedef $$DaysTableCreateCompanionBuilder =
       Value<String?> journalNote,
       Value<String?> audioJournalMediaId,
       Value<String?> coverMediaId,
+      Value<int?> dayRating,
       Value<int> rowid,
     });
 typedef $$DaysTableUpdateCompanionBuilder =
@@ -3658,6 +3789,7 @@ typedef $$DaysTableUpdateCompanionBuilder =
       Value<String?> journalNote,
       Value<String?> audioJournalMediaId,
       Value<String?> coverMediaId,
+      Value<int?> dayRating,
       Value<int> rowid,
     });
 
@@ -3696,6 +3828,11 @@ class $$DaysTableFilterComposer extends Composer<_$AppDatabase, $DaysTable> {
 
   ColumnFilters<String> get coverMediaId => $composableBuilder(
     column: $table.coverMediaId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get dayRating => $composableBuilder(
+    column: $table.dayRating,
     builder: (column) => ColumnFilters(column),
   );
 }
@@ -3737,6 +3874,11 @@ class $$DaysTableOrderingComposer extends Composer<_$AppDatabase, $DaysTable> {
     column: $table.coverMediaId,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<int> get dayRating => $composableBuilder(
+    column: $table.dayRating,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$DaysTableAnnotationComposer
@@ -3771,6 +3913,9 @@ class $$DaysTableAnnotationComposer
     column: $table.coverMediaId,
     builder: (column) => column,
   );
+
+  GeneratedColumn<int> get dayRating =>
+      $composableBuilder(column: $table.dayRating, builder: (column) => column);
 }
 
 class $$DaysTableTableManager
@@ -3807,6 +3952,7 @@ class $$DaysTableTableManager
                 Value<String?> journalNote = const Value.absent(),
                 Value<String?> audioJournalMediaId = const Value.absent(),
                 Value<String?> coverMediaId = const Value.absent(),
+                Value<int?> dayRating = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => DaysCompanion(
                 id: id,
@@ -3815,6 +3961,7 @@ class $$DaysTableTableManager
                 journalNote: journalNote,
                 audioJournalMediaId: audioJournalMediaId,
                 coverMediaId: coverMediaId,
+                dayRating: dayRating,
                 rowid: rowid,
               ),
           createCompanionCallback:
@@ -3825,6 +3972,7 @@ class $$DaysTableTableManager
                 Value<String?> journalNote = const Value.absent(),
                 Value<String?> audioJournalMediaId = const Value.absent(),
                 Value<String?> coverMediaId = const Value.absent(),
+                Value<int?> dayRating = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => DaysCompanion.insert(
                 id: id,
@@ -3833,6 +3981,7 @@ class $$DaysTableTableManager
                 journalNote: journalNote,
                 audioJournalMediaId: audioJournalMediaId,
                 coverMediaId: coverMediaId,
+                dayRating: dayRating,
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0

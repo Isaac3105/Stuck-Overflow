@@ -18,22 +18,22 @@ class TimelinePage extends ConsumerWidget {
     final tripsAsync = ref.watch(allTripsProvider);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Memórias')),
+      appBar: AppBar(title: const Text('Memories')),
       body: tripsAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(child: Text('Erro: $e')),
+        error: (e, _) => Center(child: Text('Error: $e')),
         data: (trips) {
           final tripById = {for (final t in trips) t.id: t};
           return mediaAsync.when(
             loading: () => const Center(child: CircularProgressIndicator()),
-            error: (e, _) => Center(child: Text('Erro: $e')),
+            error: (e, _) => Center(child: Text('Error: $e')),
             data: (media) {
               if (media.isEmpty) {
                 return const EmptyState(
                   icon: Icons.auto_stories_outlined,
-                  title: 'Ainda sem memórias',
+                  title: 'No memories yet',
                   message:
-                      'As tuas fotos e áudios aparecem aqui por ordem cronológica, atravessando todas as viagens.',
+                      'Your photos and audios appear here in chronological order, spanning across all trips.',
                 );
               }
 
@@ -46,9 +46,9 @@ class TimelinePage extends ConsumerWidget {
                 padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
                 children: [
                   _SectionTitle(
-                    title: 'Momentos',
+                    title: 'Moments',
                     subtitle:
-                        '${media.length} itens · ${photos.length} fotos · ${audios.length} áudios',
+                        '${media.length} items · ${photos.length} photos · ${audios.length} audios',
                   ),
                   const SizedBox(height: 8),
                   ...media.map((m) {
@@ -100,7 +100,7 @@ class _MemoryCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    final when = DateFormat('d MMM yyyy • HH:mm', 'pt_PT').format(media.takenAt);
+    final when = DateFormat('d MMM yyyy • HH:mm', 'en').format(media.takenAt);
 
     return Card(
       color: scheme.surfaceContainerHigh,
@@ -120,7 +120,7 @@ class _MemoryCard extends StatelessWidget {
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    trip?.name ?? 'Viagem',
+                    trip?.name ?? 'Trip',
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: Theme.of(context).textTheme.titleSmall,
@@ -152,7 +152,7 @@ class _MemoryCard extends StatelessWidget {
             else
               AudioPlayerTile(
                 filePath: media.filePath,
-                label: 'Áudio',
+                label: 'Audio',
               ),
           ],
         ),
