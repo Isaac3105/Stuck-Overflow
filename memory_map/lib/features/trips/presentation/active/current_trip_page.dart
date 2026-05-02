@@ -664,7 +664,7 @@ class _CapturesSection extends StatelessWidget {
                       padding: const EdgeInsets.symmetric(vertical: 4),
                       child: AudioPlayerTile(
                         filePath: a.filePath,
-                        label: 'Audio at ${DateFormat('HH:mm').format(a.takenAt)}',
+                        label: 'recorded at ${DateFormat('HH:mm').format(a.takenAt)}',
                       ),
                     ),
                   ),

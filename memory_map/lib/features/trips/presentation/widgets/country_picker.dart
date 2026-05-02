@@ -9,11 +9,15 @@ class CountryPickerField extends StatefulWidget {
     required this.selected,
     required this.onChanged,
     this.label = 'Countries',
+    this.mandatory = false,
+    this.errorText,
   });
 
   final List<String> selected;
   final ValueChanged<List<String>> onChanged;
   final String label;
+  final bool mandatory;
+  final String? errorText;
 
   @override
   State<CountryPickerField> createState() => _CountryPickerFieldState();
@@ -36,8 +40,20 @@ class _CountryPickerFieldState extends State<CountryPickerField> {
       borderRadius: BorderRadius.circular(12),
       child: InputDecorator(
         decoration: InputDecoration(
-          labelText: widget.label,
+          label: Text.rich(
+            TextSpan(
+              children: [
+                TextSpan(text: widget.label),
+                if (widget.mandatory)
+                  const TextSpan(
+                    text: ' *',
+                    style: TextStyle(color: Colors.red),
+                  ),
+              ],
+            ),
+          ),
           suffixIcon: const Icon(Icons.expand_more),
+          errorText: widget.errorText,
         ),
         child: widget.selected.isEmpty
             ? const Text('Tap to choose')
