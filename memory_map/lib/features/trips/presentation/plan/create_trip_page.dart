@@ -39,15 +39,51 @@ class _CreateTripPageState extends ConsumerState<CreateTripPage> {
 
   Future<void> _pickRange() async {
     final now = DateTime.now();
+    final trips = ref.read(allTripsProvider).valueOrNull ?? [];
+
+    bool isBlocked(DateTime date) {
+      final d = DateTime(date.year, date.month, date.day);
+      for (final t in trips) {
+        final s = DateTime(t.startDate.year, t.startDate.month, t.startDate.day);
+        final e = DateTime(t.endDate.year, t.endDate.month, t.endDate.day);
+        if (!d.isBefore(s) && !d.isAfter(e)) return true;
+      }
+      return false;
+    }
+
+    // Find the first available start date starting from today
+    DateTime initialStart = DateTime(now.year, now.month, now.day);
+    while (isBlocked(initialStart)) {
+      initialStart = initialStart.add(const Duration(days: 1));
+      // Safety break to avoid infinite loop
+      if (initialStart.year > now.year + 5) break;
+    }
+
     final picked = await showDateRangePicker(
       context: context,
       firstDate: DateTime(now.year - 1),
       lastDate: DateTime(now.year + 5),
       initialDateRange: _range ??
           DateTimeRange(
-            start: now,
-            end: now.add(const Duration(days: 6)),
+            start: initialStart,
+            end: initialStart.add(const Duration(days: 6)),
           ),
+      selectableDayPredicate: (day, start, end) {
+        if (isBlocked(day)) return false;
+        if (start != null && end == null) {
+          // We are picking the end date. 
+          // Ensure no blocked days exist between start and day.
+          DateTime s = start.isBefore(day) ? start : day;
+          DateTime e = start.isBefore(day) ? day : start;
+          
+          DateTime curr = s;
+          while (!curr.isAfter(e)) {
+            if (isBlocked(curr)) return false;
+            curr = curr.add(const Duration(days: 1));
+          }
+        }
+        return true;
+      },
     );
     if (picked != null) {
       setState(() {
@@ -85,6 +121,24 @@ class _CreateTripPageState extends ConsumerState<CreateTripPage> {
       _buttonShakeKey.currentState?.shake();
       setState(() {});
       return;
+    }
+
+    // Overlap check
+    final trips = ref.read(allTripsProvider).valueOrNull ?? [];
+    final rangeStart = DateTime(_range!.start.year, _range!.start.month, _range!.start.day);
+    final rangeEnd = DateTime(_range!.end.year, _range!.end.month, _range!.end.day);
+
+    for (final t in trips) {
+      final tStart = DateTime(t.startDate.year, t.startDate.month, t.startDate.day);
+      final tEnd = DateTime(t.endDate.year, t.endDate.month, t.endDate.day);
+
+      // Overlap: (S1 <= E2) && (E1 >= S2)
+      if ((!rangeStart.isBefore(tStart) && !rangeEnd.isBefore(tStart)) || (!rangeStart.isAfter(tEnd) && !rangeEnd.isAfter(tEnd))) {
+        setState(() => _rangeError = 'This trip overlaps with "${t.name}"');
+        _rangeShakeKey.currentState?.shake();
+        _buttonShakeKey.currentState?.shake();
+        return;
+      }
     }
 
     setState(() => _saving = true);

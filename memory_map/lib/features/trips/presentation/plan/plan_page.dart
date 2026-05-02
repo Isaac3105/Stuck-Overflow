@@ -60,7 +60,7 @@ class PlanPage extends ConsumerWidget {
                   return TripCard(
                     trip: t,
                     layout: TripCardLayout.plan,
-                    onTap: () => context.push('/plan/${t.id}'),
+                    onTap: () => context.push('/current'),
                   );
                 },
               ),
