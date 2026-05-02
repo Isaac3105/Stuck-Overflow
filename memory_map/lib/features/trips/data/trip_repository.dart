@@ -38,6 +38,7 @@ abstract class TripRepository {
   });
   Future<void> updateBlock(ActivityBlock block);
   Future<void> deleteBlock(String blockId);
+  Future<ActivityBlock?> getActivityBlock(String blockId);
 
   Stream<List<MediaItem>> watchMediaForTrip(String tripId);
   Stream<List<MediaItem>> watchMediaForDay(String dayId);

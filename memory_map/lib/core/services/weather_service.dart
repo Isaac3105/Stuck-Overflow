@@ -1,6 +1,8 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../data/geography.dart';
+
 class WeatherSnapshot {
   const WeatherSnapshot({
     required this.temperatureC,
@@ -144,11 +146,43 @@ const _capitalCoords = <String, _Coords>{
   'MZ': _Coords(-25.9655, 32.5832),
 };
 
-/// Resolves a representative coordinate from a list of country codes.
+/// Capital WGS84 for a known ISO 3166-1 alpha-2 code (e.g. `FR`, `ES`).
+({double lat, double lng})? capitalLatLngForIso(String iso2) {
+  final m = _capitalCoords[iso2.trim().toUpperCase()];
+  if (m == null) return null;
+  return (lat: m.lat, lng: m.lng);
+}
+
+/// First country in [countries] that maps to a known capital (planner stores
+/// full names like `France` or sometimes `FR`).
 ({double lat, double lng})? coordsForCountries(List<String> countries) {
   for (final c in countries) {
-    final m = _capitalCoords[c];
-    if (m != null) return (lat: m.lat, lng: m.lng);
+    final iso = resolveGeography(c)?.code ??
+        (c.trim().length == 2 ? c.trim().toUpperCase() : null);
+    if (iso == null) continue;
+    final cap = capitalLatLngForIso(iso);
+    if (cap != null) return cap;
   }
   return null;
+}
+
+/// Average of capitals for all resolvable countries (stable anchor for
+/// multi-country trips, e.g. France + Spain).
+({double lat, double lng})? coordsMidpointOfCapitals(List<String> countries) {
+  var sumLat = 0.0;
+  var sumLng = 0.0;
+  var n = 0;
+  for (final c in countries) {
+    final iso = resolveGeography(c)?.code ??
+        (c.trim().length == 2 ? c.trim().toUpperCase() : null);
+    if (iso == null) continue;
+    final cap = capitalLatLngForIso(iso);
+    if (cap != null) {
+      sumLat += cap.lat;
+      sumLng += cap.lng;
+      n++;
+    }
+  }
+  if (n == 0) return null;
+  return (lat: sumLat / n, lng: sumLng / n);
 }
