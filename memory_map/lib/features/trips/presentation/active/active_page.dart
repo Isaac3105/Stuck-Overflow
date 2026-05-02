@@ -16,6 +16,8 @@ import '../widgets/activity_block_tile.dart';
 import '../widgets/empty_state.dart';
 import '../widgets/weather_card.dart';
 
+enum _CaptureAction { takePhoto, recordVideo, pickPhoto, pickVideo }
+
 class ActivePage extends ConsumerWidget {
   const ActivePage({super.key});
 
@@ -104,60 +106,71 @@ class _TodayView extends ConsumerWidget {
   final List<String> countries;
   final TripDay day;
 
-  Future<void> _capturePhoto(BuildContext context, WidgetRef ref) async {
+  Future<void> _captureMedia(BuildContext context, WidgetRef ref) async {
     final messenger = ScaffoldMessenger.of(context);
-    final media = await ref.read(mediaCaptureServiceProvider).capturePhoto(
-          tripId: tripId,
-          dayId: day.id,
-        );
-    if (media == null) {
-      messenger.showSnackBar(
-        const SnackBar(content: Text('Capture canceled or permission denied.')),
-      );
-    }
-  }
-
-  Future<void> _pickFromGallery(BuildContext context, WidgetRef ref) async {
-    final messenger = ScaffoldMessenger.of(context);
-    final media = await ref.read(mediaCaptureServiceProvider).pickPhotoFromGallery(
-          tripId: tripId,
-          dayId: day.id,
-        );
-    if (media == null) {
-      messenger.showSnackBar(
-        const SnackBar(content: Text('Picking canceled or permission denied.')),
-      );
-    }
-  }
-
-  void _showAddPhotoSheet(BuildContext context, WidgetRef ref) {
-    showModalBottomSheet(
+    final action = await showModalBottomSheet<_CaptureAction>(
       context: context,
       showDragHandle: true,
       builder: (ctx) => SafeArea(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
+            const ListTile(
+              title: Text('Add to this day'),
+              subtitle: Text('Choose what you want to capture or pick.'),
+            ),
             ListTile(
               leading: const Icon(Icons.photo_camera_outlined),
               title: const Text('Take photo'),
-              onTap: () {
-                Navigator.pop(ctx);
-                _capturePhoto(context, ref);
-              },
+              onTap: () => Navigator.of(ctx).pop(_CaptureAction.takePhoto),
             ),
             ListTile(
-              leading: const Icon(Icons.photo_library_outlined),
-              title: const Text('Pick from gallery'),
-              onTap: () {
-                Navigator.pop(ctx);
-                _pickFromGallery(context, ref);
-              },
+              leading: const Icon(Icons.videocam_outlined),
+              title: const Text('Record video'),
+              onTap: () => Navigator.of(ctx).pop(_CaptureAction.recordVideo),
             ),
+            const Divider(height: 0),
+            ListTile(
+              leading: const Icon(Icons.photo_library_outlined),
+              title: const Text('Pick photo from gallery'),
+              onTap: () => Navigator.of(ctx).pop(_CaptureAction.pickPhoto),
+            ),
+            ListTile(
+              leading: const Icon(Icons.video_library_outlined),
+              title: const Text('Pick video from gallery'),
+              onTap: () => Navigator.of(ctx).pop(_CaptureAction.pickVideo),
+            ),
+            const SizedBox(height: 8),
           ],
         ),
       ),
     );
+    if (action == null) return;
+
+    final svc = ref.read(mediaCaptureServiceProvider);
+    final media = switch (action) {
+      _CaptureAction.takePhoto => await svc.capturePhoto(
+          tripId: tripId,
+          dayId: day.id,
+        ),
+      _CaptureAction.recordVideo => await svc.captureVideo(
+          tripId: tripId,
+          dayId: day.id,
+        ),
+      _CaptureAction.pickPhoto => await svc.pickPhotoFromGallery(
+          tripId: tripId,
+          dayId: day.id,
+        ),
+      _CaptureAction.pickVideo => await svc.pickVideoFromGallery(
+          tripId: tripId,
+          dayId: day.id,
+        ),
+    };
+    if (media == null) {
+      messenger.showSnackBar(
+        const SnackBar(content: Text('Capture canceled or permission denied.')),
+      );
+    }
   }
 
   @override
@@ -203,9 +216,9 @@ class _TodayView extends ConsumerWidget {
             const SizedBox(width: 12),
             Expanded(
               child: FilledButton.icon(
-                onPressed: () => _showAddPhotoSheet(context, ref),
+                onPressed: () => _captureMedia(context, ref),
                 icon: const Icon(Icons.photo_camera_outlined),
-                label: const Text('Add photo'),
+                label: const Text('Add media'),
               ),
             ),
           ],
@@ -258,8 +271,9 @@ class _TodayView extends ConsumerWidget {
                 ),
               );
             }
-            final photos =
-                media.where((m) => m.type == MediaType.photo).toList();
+            final photos = media
+                .where((m) => m.type == MediaType.photo || m.type == MediaType.video)
+                .toList();
             final audios =
                 media.where((m) => m.type == MediaType.audio).toList();
             return Column(
@@ -276,11 +290,14 @@ class _TodayView extends ConsumerWidget {
                       mainAxisSpacing: 8,
                     ),
                     itemCount: photos.length,
-                    itemBuilder: (_, i) => PhotoThumbnail(
+                    itemBuilder: (_, i) => MediaThumbnail(
+                      type: photos[i].type,
                       filePath: photos[i].filePath,
                       onTap: () => Navigator.of(context).push(MaterialPageRoute(
-                        builder: (_) =>
-                            PhotoViewerPage(filePath: photos[i].filePath),
+                        builder: (_) => MediaViewerPage(
+                          type: photos[i].type,
+                          filePath: photos[i].filePath,
+                        ),
                       )),
                     ),
                   ),

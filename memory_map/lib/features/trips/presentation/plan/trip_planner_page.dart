@@ -3,19 +3,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 import '../widgets/cities_field.dart';
 import '../widgets/country_picker.dart';
 
-import '../../../../core/config/env.dart';
 import '../../../../core/data/geography.dart';
-import '../../../../core/services/gemini_service.dart';
-import '../../../../core/services/spotify_service.dart';
 import '../../data/trip_providers.dart';
 import '../../domain/day.dart';
 import '../../domain/trip.dart';
-import '../../../music/data/spotify_repository.dart';
 import '../widgets/activity_block_tile.dart';
 import '../widgets/days_strip.dart';
 import '../widgets/empty_state.dart';

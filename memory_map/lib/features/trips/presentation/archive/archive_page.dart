@@ -54,10 +54,10 @@ class _ArchiveGrid extends ConsumerWidget {
       itemCount: trips.length,
       itemBuilder: (context, i) {
         final t = trips[i];
-        final coverPath = ref.watch(tripCoverImagePathProvider(t));
+        final coverMedia = ref.watch(tripCoverMediaProvider(t));
         return TripCard(
           trip: t,
-          coverImagePath: coverPath,
+          coverMedia: coverMedia,
           onTap: () => context.push('/archive/${t.id}'),
         );
       },

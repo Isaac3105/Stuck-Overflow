@@ -24,6 +24,14 @@ class MediaCaptureService {
     return status.isGranted;
   }
 
+  Future<bool> ensureVideoCapturePermissions() async {
+    final cam = await Permission.camera.request();
+    if (!cam.isGranted) return false;
+    // Video recording typically includes audio.
+    final mic = await Permission.microphone.request();
+    return mic.isGranted;
+  }
+
   /// Takes a photo, copies it to the app's storage, and inserts a media row.
   Future<MediaItem?> capturePhoto({
     required String tripId,
@@ -48,6 +56,26 @@ class MediaCaptureService {
         );
   }
 
+  /// Records a video, copies it to the app's storage, and inserts a media row.
+  Future<MediaItem?> captureVideo({
+    required String tripId,
+    String? dayId,
+    String? activityBlockId,
+  }) async {
+    if (!await ensureVideoCapturePermissions()) return null;
+    final picked = await _picker.pickVideo(source: ImageSource.camera);
+    if (picked == null) return null;
+    final stored =
+        await _ref.read(fileStorageProvider).saveVideo(tripId, File(picked.path));
+    return _ref.read(tripRepositoryProvider).addMedia(
+          tripId: tripId,
+          dayId: dayId,
+          activityBlockId: activityBlockId,
+          type: MediaType.video,
+          filePath: stored.path,
+        );
+  }
+
   /// Picks a photo from the gallery (no camera permission required on modern Android).
   Future<MediaItem?> pickPhotoFromGallery({
     required String tripId,
@@ -67,6 +95,24 @@ class MediaCaptureService {
           dayId: dayId,
           activityBlockId: activityBlockId,
           type: MediaType.photo,
+          filePath: stored.path,
+        );
+  }
+
+  Future<MediaItem?> pickVideoFromGallery({
+    required String tripId,
+    String? dayId,
+    String? activityBlockId,
+  }) async {
+    final picked = await _picker.pickVideo(source: ImageSource.gallery);
+    if (picked == null) return null;
+    final stored =
+        await _ref.read(fileStorageProvider).saveVideo(tripId, File(picked.path));
+    return _ref.read(tripRepositoryProvider).addMedia(
+          tripId: tripId,
+          dayId: dayId,
+          activityBlockId: activityBlockId,
+          type: MediaType.video,
           filePath: stored.path,
         );
   }
